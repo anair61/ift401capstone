@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Stocks{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-10">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+          <div>
+            <h1 class="h4 mb-1">Stocks List</h1>
+            <p class="text-muted mb-0">Sample stock listings for the project prototype.</p>
+          </div>
+
+          {% if market_open %}
+            <span class="badge text-bg-success">Market Open</span>
+          {% else %}
+            <span class="badge text-bg-danger">Market Closed</span>
+          {% endif %}
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Company Name</th>
+                <th>Ticker</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for stock in stocks %}
+              <tr>
+                <td>{{ stock.company_name }}</td>
+                <td>{{ stock.ticker }}</td>
+                <td>${{ stock.price }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

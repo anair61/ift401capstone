@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border">
+  <div class="card-body p-4">
+    <h1 class="h3 mb-1">Transactions</h1>
+    <p class="text-body-secondary mb-4">Transaction history placeholder page for the prototype system.</p>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Deposit</td>
+            <td>$100.00</td>
+            <td>Completed</td>
+          </tr>
+          <tr>
+            <td>Withdraw</td>
+            <td>$40.00</td>
+            <td>Pending</td>
+          </tr>
+          <tr>
+            <td>Stock Activity</td>
+            <td>$212.45</td>
+            <td>Placeholder</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

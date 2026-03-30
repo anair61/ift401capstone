@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolio{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border">
+  <div class="card-body p-4">
+    <h1 class="h3 mb-1">Portfolio</h1>
+    <p class="text-body-secondary mb-4">Cash account and current holdings.</p>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="card h-100 border">
+          <div class="card-body">
+            <h2 class="h5">Cash Balance</h2>
+            <p class="mb-0">${{ cash_balance }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card h-100 border">
+          <div class="card-body">
+            <h2 class="h5">Portfolio Value</h2>
+            <p class="mb-0">${{ portfolio_value }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Ticker</th>
+            <th>Shares</th>
+            <th>Avg Cost</th>
+            <th>Current Price</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if holdings and holdings|length > 0 %}
+            {% for h in holdings %}
+            <tr>
+              <td>{{ h.company_name }}</td>
+              <td>{{ h.ticker }}</td>
+              <td>{{ h.shares }}</td>
+              <td>${{ h.avg_cost }}</td>
+              <td>${{ h.price }}</td>
+              <td>${{ h.value }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="text-center">No holdings yet.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
