@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Market Hours{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm border" style="max-width: 600px; margin: auto;">
+  <div class="card-body p-4">
+
+    <h1 class="h4 mb-2">Market Hours</h1>
+    <p class="text-body-secondary mb-4">
+      Orders placed during market hours execute immediately. Orders placed outside market hours remain pending.
+    </p>
+
+    <form method="post">
+
+      <div class="mb-3">
+        <label class="form-label">Open Time (HH:MM)</label>
+        <input class="form-control" name="open_time" value="{{ settings.open_time }}" placeholder="09:30">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Close Time (HH:MM)</label>
+        <input class="form-control" name="close_time" value="{{ settings.close_time }}" placeholder="16:00">
+      </div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm" type="submit">Save</button>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('home') }}">Cancel</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
