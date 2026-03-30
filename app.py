@@ -7,6 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from functools import wraps
+from decimal import Decimal, InvalidOperation
 
 app = Flask(__name__)
 
@@ -23,7 +24,6 @@ login_manager.login_view = "login"
 bcrypt = Bcrypt(app)
 
 
-# Models
 # Models
 class Users(UserMixin, db.Model):
     __tablename__ = "users"
@@ -288,16 +288,62 @@ def home():
 @login_required
 def stocks():
     market_open = is_market_open()
+    all_stocks = Stock.query.order_by(Stock.company_name.asc()).all()
+    return render_template("stocks.html", market_open=market_open, stocks=all_stocks)
 
-    sample_stocks = [
-        {"ticker": "AAPL", "company_name": "Apple Inc.", "price": "212.45"},
-        {"ticker": "MSFT", "company_name": "Microsoft Corp.", "price": "428.10"},
-        {"ticker": "NVDA", "company_name": "NVIDIA Corp.", "price": "901.22"},
-        {"ticker": "AMZN", "company_name": "Amazon.com Inc.", "price": "178.34"},
-    ]
+@app.route("/buy/<int:stock_id>", methods=["GET", "POST"])
+@login_required
+def buy_stock(stock_id):
+    stock = Stock.query.get_or_404(stock_id)
+    cash = CashAccount.query.filter_by(user_id=current_user.id).first()
 
-    return render_template("stocks.html", market_open=market_open, stocks=sample_stocks)
+    if request.method == "POST":
+        shares = int(request.form.get("shares", 0))
 
+        order = Order(
+            user_id=current_user.id,
+            stock_id=stock.id,
+            side="buy",
+            shares=shares,
+            price_at_submit=stock.price,
+            status="pending"
+        )
+
+        db.session.add(order)
+        db.session.commit()
+
+        flash("Buy order placed.", "success")
+        return redirect(url_for("stocks"))
+
+    return render_template("buy.html", stock=stock, cash_balance=cash.balance)
+
+@app.route("/sell/<int:stock_id>", methods=["GET", "POST"])
+@login_required
+def sell_stock(stock_id):
+    stock = Stock.query.get_or_404(stock_id)
+    holding = Holding.query.filter_by(user_id=current_user.id, stock_id=stock.id).first()
+
+    owned = holding.shares if holding else 0
+
+    if request.method == "POST":
+        shares = int(request.form.get("shares", 0))
+
+        order = Order(
+            user_id=current_user.id,
+            stock_id=stock.id,
+            side="sell",
+            shares=shares,
+            price_at_submit=stock.price,
+            status="pending"
+        )
+
+        db.session.add(order)
+        db.session.commit()
+
+        flash("Sell order placed.", "success")
+        return redirect(url_for("stocks"))
+
+    return render_template("sell.html", stock=stock, owned=owned)
 
 @app.route("/portfolio")
 @login_required
@@ -311,17 +357,68 @@ def transactions():
     return render_template("transactions.html")
 
 
-@app.route("/deposit")
+@app.route("/deposit", methods=["GET", "POST"])
 @login_required
 def deposit():
-    return render_template("deposit.html")
+    cash_account = CashAccount.query.filter_by(user_id=current_user.id).first()
+
+    if not cash_account:
+        cash_account = CashAccount(user_id=current_user.id, balance=Decimal("0.00"))
+        db.session.add(cash_account)
+        db.session.commit()
+
+    if request.method == "POST":
+        try:
+            amount = Decimal(request.form.get("amount", "0"))
+        except (InvalidOperation, TypeError):
+            flash("Enter a valid amount.", "warning")
+            return redirect(url_for("deposit"))
+
+        if amount <= Decimal("0.00"):
+            flash("Deposit amount must be greater than 0.", "warning")
+            return redirect(url_for("deposit"))
+
+        cash_account.balance = cash_account.balance + amount
+        db.session.commit()
+
+        flash("Deposit successful.", "success")
+        return redirect(url_for("deposit"))
+
+    return render_template("deposit.html", cash_balance=cash_account.balance)
 
 
-@app.route("/withdraw")
+@app.route("/withdraw", methods=["GET", "POST"])
 @login_required
 def withdraw():
-    return render_template("withdraw.html")
+    cash_account = CashAccount.query.filter_by(user_id=current_user.id).first()
 
+    if not cash_account:
+        cash_account = CashAccount(user_id=current_user.id, balance=Decimal("0.00"))
+        db.session.add(cash_account)
+        db.session.commit()
+
+    if request.method == "POST":
+        try:
+            amount = Decimal(request.form.get("amount", "0"))
+        except (InvalidOperation, TypeError):
+            flash("Enter a valid amount.", "warning")
+            return redirect(url_for("withdraw"))
+
+        if amount <= Decimal("0.00"):
+            flash("Withdrawal amount must be greater than 0.", "warning")
+            return redirect(url_for("withdraw"))
+
+        if cash_account.balance < amount:
+            flash("Insufficient balance.", "danger")
+            return redirect(url_for("withdraw"))
+
+        cash_account.balance = cash_account.balance - amount
+        db.session.commit()
+
+        flash("Withdrawal successful.", "success")
+        return redirect(url_for("withdraw"))
+
+    return render_template("withdraw.html", cash_balance=cash_account.balance)
 
 # Admin pages
 def validate_time_string(value: str) -> str:
@@ -445,3 +542,4 @@ def delete_holiday(holiday_id: int):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
