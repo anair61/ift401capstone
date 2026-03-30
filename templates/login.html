@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-6 col-lg-5">
+        <div class="card shadow-sm border-0">
+          <div class="card-body p-4">
+            <h1 class="h4 mb-3">Login</h1>
+
+            {% if request.args.get('error') == 'invalid' %}
+              <div class="alert alert-danger">
+                Incorrect username or password.
+              </div>
+            {% endif %}
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <div class="mb-3">
+                  {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} mb-2">{{ message }}</div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <form method="post" action="{{ url_for('login') }}">
+              <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input class="form-control" type="text" name="username" required autofocus>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input class="form-control" type="password" name="password" required>
+              </div>
+
+              <button class="btn btn-primary w-100" type="submit">Login</button>
+            </form>
+
+            <div class="mt-3 text-center">
+              <span class="text-muted">No account?</span>
+              <a href="{{ url_for('register') }}" class="text-decoration-none">Create one</a>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-center text-muted mt-3 mb-0 small">Stock Trading System</p>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
