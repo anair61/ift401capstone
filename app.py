@@ -379,6 +379,17 @@ def deposit():
             return redirect(url_for("deposit"))
 
         cash_account.balance = cash_account.balance + amount
+
+        txn = Transaction(
+            user_id=current_user.id,
+            txn_type="deposit",
+            amount=amount,
+            stock_id=None,
+            shares=None,
+            price=None,
+            order_id=None
+        )
+        db.session.add(txn)
         db.session.commit()
 
         flash("Deposit successful.", "success")
