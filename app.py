@@ -408,7 +408,11 @@ def portfolio():
 @app.route("/transactions")
 @login_required
 def transactions():
-    return render_template("transactions.html")
+    all_transactions = Transaction.query.filter_by(
+        user_id=current_user.id
+    ).order_by(Transaction.created_at.desc()).all()
+
+    return render_template("transactions.html", transactions=all_transactions)
 
 
 @app.route("/deposit", methods=["GET", "POST"])
