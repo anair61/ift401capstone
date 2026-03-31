@@ -326,7 +326,21 @@ def sell_stock(stock_id):
     owned = holding.shares if holding else 0
 
     if request.method == "POST":
-        shares = int(request.form.get("shares", 0))
+        try:
+            shares = int(request.form.get("shares", 0))
+        except (TypeError, ValueError):
+            flash("Enter a valid number of shares.", "warning")
+            return redirect(url_for("sell_stock", stock_id=stock.id))
+
+        if shares <= 0:
+            flash("Shares must be greater than 0.", "warning")
+            return redirect(url_for("sell_stock", stock_id=stock.id))
+
+        if not holding or holding.shares < shares:
+            flash("Not enough shares to sell.", "danger")
+            return redirect(url_for("sell_stock", stock_id=stock.id))
+
+        total_value = Decimal(stock.price) * shares
 
         order = Order(
             user_id=current_user.id,
@@ -334,16 +348,23 @@ def sell_stock(stock_id):
             side="sell",
             shares=shares,
             price_at_submit=stock.price,
-            status="pending"
+            status="executed",
+            executed_at=datetime.utcnow()
         )
-
         db.session.add(order)
-        db.session.commit()
+        db.session.flush()
 
-        flash("Sell order placed.", "success")
-        return redirect(url_for("stocks"))
+        holding.shares = holding.shares - shares
+        if holding.shares == 0:
+            db.session.delete(holding)
 
-    return render_template("sell.html", stock=stock, owned=owned)
+        cash = CashAccount.query.filter_by(user_id=current_user.id).first()
+        if not cash:
+            cash = CashAccount(user_id=current_user.id, balance=Decimal("0.00"))
+            db.session.add(cash)
+            db.session.flush()
+
+        cash.balance = cash.balance + total_value
 
 @app.route("/portfolio")
 @login_required
