@@ -424,6 +424,17 @@ def withdraw():
             return redirect(url_for("withdraw"))
 
         cash_account.balance = cash_account.balance - amount
+
+           txn = Transaction(
+            user_id=current_user.id,
+            txn_type="withdraw",
+            amount=amount,
+            stock_id=None,
+            shares=None,
+            price=None,
+            order_id=None
+        )
+        db.session.add(txn)
         db.session.commit()
 
         flash("Withdrawal successful.", "success")
