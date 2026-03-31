@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Sell{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 640px;">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+      <h1 class="h4 mb-1">Sell {{ stock.ticker }}</h1>
+      <div class="text-muted small mb-3">{{ stock.company_name }} | Price: ${{ stock.price }}</div>
+
+      <div class="alert alert-secondary">
+        Shares owned: {{ owned }}
+      </div>
+
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">Shares</label>
+          <input class="form-control" name="shares" type="number" min="1" required>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-danger">Sell</button>
+          <a class="btn btn-outline-secondary" href="{{ url_for('stocks') }}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
