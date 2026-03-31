@@ -118,6 +118,9 @@ class Transaction(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    stock = db.relationship("Stock", foreign_keys=[stock_id])
+    user = db.relationship("Users", foreign_keys=[user_id])
+    order = db.relationship("Order", foreign_keys=[order_id])
 
 class MarketSettings(db.Model):
     __tablename__ = "market_settings"
