@@ -372,7 +372,37 @@ def sell_stock(stock_id):
 @app.route("/portfolio")
 @login_required
 def portfolio():
-    return render_template("portfolio.html")
+    cash_account = CashAccount.query.filter_by(user_id=current_user.id).first()
+    cash_balance = cash_account.balance if cash_account else Decimal("0.00")
+
+    holdings = Holding.query.filter_by(user_id=current_user.id).all()
+
+    holdings_data = []
+    total_value = Decimal("0.00")
+
+    for h in holdings:
+        stock = Stock.query.get(h.stock_id)
+        current_value = Decimal(stock.price) * h.shares
+        total_value += current_value
+
+        holdings_data.append({
+            "ticker": stock.ticker,
+            "company": stock.company_name,
+            "shares": h.shares,
+            "avg_cost": h.avg_cost,
+            "price": stock.price,
+            "value": current_value
+        })
+
+    account_total = cash_balance + total_value
+
+    return render_template(
+        "portfolio.html",
+        cash_balance=cash_balance,
+        holdings=holdings_data,
+        total_value=total_value,
+        account_total=account_total
+    )
 
 
 @app.route("/transactions")
