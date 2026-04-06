@@ -42,7 +42,7 @@ class CashAccount(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False)
-    balance = db.Column(db.Numeric(12, 2), default=0, nullable=False)
+    balance = db.Column(db.Numeric(12, 2), default=Decimal("0.00"), nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
