@@ -68,7 +68,7 @@ class Holding(db.Model):
     stock_id = db.Column(db.Integer, db.ForeignKey("stocks.id"), nullable=False)
 
     shares = db.Column(db.Integer, default=0, nullable=False)
-    avg_cost = db.Column(db.Numeric(12, 2), default=0, nullable=False)
+    avg_cost = db.Column(db.Numeric(12, 2), default=Decimal("0.00"), nullable=False)
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "stock_id", name="uniq_user_stock"),
