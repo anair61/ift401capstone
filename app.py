@@ -214,6 +214,16 @@ def is_market_open(now: datetime | None = None) -> bool:
 
     return open_t <= now.time() <= close_t
 
+def get_or_create_cash_account(user_id: int) -> CashAccount:
+    cash_account = CashAccount.query.filter_by(user_id=user_id).first()
+    if cash_account:
+        return cash_account
+
+    cash_account = CashAccount(user_id=user_id, balance=Decimal("0.00"))
+    db.session.add(cash_account)
+    db.session.flush()
+    return cash_account
+
 # Auth
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -415,90 +425,55 @@ def transactions():
     return render_template("transactions.html", transactions=all_transactions)
 
 
-@app.route("/deposit", methods=["GET", "POST"])
+@app.route("/cash", methods=["GET", "POST"])
 @login_required
-def deposit():
-    cash_account = CashAccount.query.filter_by(user_id=current_user.id).first()
-
-    if not cash_account:
-        cash_account = CashAccount(user_id=current_user.id, balance=Decimal("0.00"))
-        db.session.add(cash_account)
-        db.session.commit()
+def cash():
+    cash_account = get_or_create_cash_account(current_user.id)
 
     if request.method == "POST":
+        action = (request.form.get("action") or "").strip().lower()
+
         try:
-            amount = Decimal(request.form.get("amount", "0"))
+            amount = Decimal(request.form.get("amount", "0")).quantize(Decimal("0.01"))
         except (InvalidOperation, TypeError):
             flash("Enter a valid amount.", "warning")
-            return redirect(url_for("deposit"))
+            return redirect(url_for("cash"))
 
         if amount <= Decimal("0.00"):
-            flash("Deposit amount must be greater than 0.", "warning")
-            return redirect(url_for("deposit"))
+            flash("Amount must be greater than 0.", "warning")
+            return redirect(url_for("cash"))
 
-        cash_account.balance = cash_account.balance + amount
+        if action not in {"deposit", "withdraw"}:
+            flash("Invalid cash action.", "danger")
+            return redirect(url_for("cash"))
+
+        if action == "withdraw" and cash_account.balance < amount:
+            flash("Insufficient balance.", "danger")
+            return redirect(url_for("cash"))
+
+        if action == "deposit":
+            cash_account.balance = cash_account.balance + amount
+        else:
+            cash_account.balance = cash_account.balance - amount
 
         txn = Transaction(
             user_id=current_user.id,
-            txn_type="deposit",
+            txn_type=action,
+            status="completed",
             amount=amount,
             stock_id=None,
             shares=None,
             price=None,
-            order_id=None
+            notes=f"Cash {action}",
+            completed_at=datetime.utcnow(),
         )
         db.session.add(txn)
         db.session.commit()
 
-        flash("Deposit successful.", "success")
-        return redirect(url_for("deposit"))
+        flash(f"{action.capitalize()} successful.", "success")
+        return redirect(url_for("cash"))
 
-    return render_template("deposit.html", cash_balance=cash_account.balance)
-
-
-@app.route("/withdraw", methods=["GET", "POST"])
-@login_required
-def withdraw():
-    cash_account = CashAccount.query.filter_by(user_id=current_user.id).first()
-
-    if not cash_account:
-        cash_account = CashAccount(user_id=current_user.id, balance=Decimal("0.00"))
-        db.session.add(cash_account)
-        db.session.commit()
-
-    if request.method == "POST":
-        try:
-            amount = Decimal(request.form.get("amount", "0"))
-        except (InvalidOperation, TypeError):
-            flash("Enter a valid amount.", "warning")
-            return redirect(url_for("withdraw"))
-
-        if amount <= Decimal("0.00"):
-            flash("Withdrawal amount must be greater than 0.", "warning")
-            return redirect(url_for("withdraw"))
-
-        if cash_account.balance < amount:
-            flash("Insufficient balance.", "danger")
-            return redirect(url_for("withdraw"))
-
-        cash_account.balance = cash_account.balance - amount
-
-           txn = Transaction(
-            user_id=current_user.id,
-            txn_type="withdraw",
-            amount=amount,
-            stock_id=None,
-            shares=None,
-            price=None,
-            order_id=None
-        )
-        db.session.add(txn)
-        db.session.commit()
-
-        flash("Withdrawal successful.", "success")
-        return redirect(url_for("withdraw"))
-
-    return render_template("withdraw.html", cash_balance=cash_account.balance)
+    return render_template("cash.html", cash_balance=cash_account.balance)
 
 # Admin pages
 def validate_time_string(value: str) -> str:
