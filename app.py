@@ -204,6 +204,53 @@ def get_or_create_cash_account(user_id: int) -> CashAccount:
     db.session.flush()
     return cash_account
 
+def execute_pending_order(txn: Transaction) -> None:
+    if txn.status != "pending":
+        return
+
+    stock = Stock.query.get(txn.stock_id)
+    if stock is None:
+        return
+
+    cash_account = get_or_create_cash_account(txn.user_id)
+    holding = Holding.query.filter_by(user_id=txn.user_id, stock_id=txn.stock_id).first()
+
+    if txn.txn_type == "buy":
+        if cash_account.balance < txn.amount:
+            return
+
+        cash_account.balance = cash_account.balance - txn.amount
+
+        if not holding:
+            holding = Holding(
+                user_id=txn.user_id,
+                stock_id=txn.stock_id,
+                shares=0,
+                avg_cost=Decimal("0.00"),
+            )
+            db.session.add(holding)
+            db.session.flush()
+
+        old_total_cost = Decimal(holding.avg_cost) * holding.shares
+        new_total_cost = old_total_cost + Decimal(txn.amount)
+        new_total_shares = holding.shares + txn.shares
+
+        holding.shares = new_total_shares
+        holding.avg_cost = (new_total_cost / new_total_shares).quantize(Decimal("0.01"))
+
+    elif txn.txn_type == "sell":
+        if not holding or holding.shares < txn.shares:
+            return
+
+        holding.shares = holding.shares - txn.shares
+        cash_account.balance = cash_account.balance + txn.amount
+
+        if holding.shares == 0:
+            db.session.delete(holding)
+
+    txn.status = "completed"
+    txn.completed_at = datetime.utcnow()
+
 # Auth
 @app.route("/register", methods=["GET", "POST"])
 def register():
