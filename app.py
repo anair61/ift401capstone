@@ -1,13 +1,12 @@
-from __future__ import annotations
-
-from datetime import datetime, date, time
-
-from flask import Flask, render_template, request, redirect, url_for, flash, abort
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from flask_bcrypt import Bcrypt
-from functools import wraps
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from functools import wraps
+from zoneinfo import ZoneInfo
+
+from flask import Flask, abort, flash, redirect, render_template, request, url_for
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
@@ -16,9 +15,10 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:rootpassword@local
 app.config["SECRET_KEY"] = "your-secret-key-here"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+ARIZONA_TZ = ZoneInfo("America/Phoenix")
+
 db = SQLAlchemy(app)
 login_manager = LoginManager()
-login_manager.init_app(app)
 login_manager.login_view = "login"
 
 bcrypt = Bcrypt(app)
