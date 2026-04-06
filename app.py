@@ -75,28 +75,6 @@ class Holding(db.Model):
     )
 
 
-class Order(db.Model):
-    __tablename__ = "orders"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    stock_id = db.Column(db.Integer, db.ForeignKey("stocks.id"), nullable=False)
-
-    side = db.Column(db.String(10), nullable=False)  # buy or sell
-    shares = db.Column(db.Integer, nullable=False)
-
-    price_at_submit = db.Column(db.Numeric(12, 2), nullable=False)
-
-    status = db.Column(
-        db.Enum("pending", "executed", "cancelled", name="order_status"),
-        default="pending",
-        nullable=False
-    )
-
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    executed_at = db.Column(db.DateTime, nullable=True)
-
-
 class Transaction(db.Model):
     __tablename__ = "transactions"
 
