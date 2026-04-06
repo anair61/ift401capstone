@@ -27,15 +27,19 @@
                 <th>Company Name</th>
                 <th>Ticker</th>
                 <th>Price</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {% for stock in stocks %}
               <tr>
-                <td>{{ stock.company_name }}</td>
-                <td>{{ stock.ticker }}</td>
-                <td>${{ stock.price }}</td>
-              </tr>
+              <td>{{ stock.company_name }}</td>
+              <td>{{ stock.ticker }}</td>
+              <td>${{ '%.2f'|format(stock.price) }}</td>
+              <td>
+    <a class="btn btn-sm btn-primary" href="{{ url_for('stock_transaction', stock_id=stock.id) }}">Open Transaction</a>
+  </td>
+</tr>
               {% endfor %}
             </tbody>
           </table>
