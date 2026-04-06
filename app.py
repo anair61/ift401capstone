@@ -304,80 +304,105 @@ def stocks():
     all_stocks = Stock.query.order_by(Stock.company_name.asc()).all()
     return render_template("stocks.html", market_open=market_open, stocks=all_stocks)
 
-@app.route("/buy/<int:stock_id>", methods=["GET", "POST"])
+@app.route("/transaction/<int:stock_id>", methods=["GET", "POST"])
 @login_required
-def buy_stock(stock_id):
+def stock_transaction(stock_id):
     stock = Stock.query.get_or_404(stock_id)
-    cash = CashAccount.query.filter_by(user_id=current_user.id).first()
-
-    if request.method == "POST":
-        shares = int(request.form.get("shares", 0))
-
-        order = Order(
-            user_id=current_user.id,
-            stock_id=stock.id,
-            side="buy",
-            shares=shares,
-            price_at_submit=stock.price,
-            status="pending"
-        )
-
-        db.session.add(order)
-        db.session.commit()
-
-        flash("Buy order placed.", "success")
-        return redirect(url_for("stocks"))
-
-    return render_template("buy.html", stock=stock, cash_balance=cash.balance)
-
-@app.route("/sell/<int:stock_id>", methods=["GET", "POST"])
-@login_required
-def sell_stock(stock_id):
-    stock = Stock.query.get_or_404(stock_id)
+    cash_account = get_or_create_cash_account(current_user.id)
     holding = Holding.query.filter_by(user_id=current_user.id, stock_id=stock.id).first()
-
     owned = holding.shares if holding else 0
+    market_now = arizona_now()
+    market_open = is_market_open(market_now)
 
     if request.method == "POST":
+        action = (request.form.get("action") or "").strip().lower()
+
         try:
-            shares = int(request.form.get("shares", 0))
-        except (TypeError, ValueError):
+            shares = int(request.form.get("shares", "0"))
+        except ValueError:
             flash("Enter a valid number of shares.", "warning")
-            return redirect(url_for("sell_stock", stock_id=stock.id))
+            return redirect(url_for("stock_transaction", stock_id=stock.id))
+
+        if action not in {"buy", "sell"}:
+            flash("Invalid transaction type.", "danger")
+            return redirect(url_for("stock_transaction", stock_id=stock.id))
 
         if shares <= 0:
             flash("Shares must be greater than 0.", "warning")
-            return redirect(url_for("sell_stock", stock_id=stock.id))
+            return redirect(url_for("stock_transaction", stock_id=stock.id))
 
-        if not holding or holding.shares < shares:
-            flash("Not enough shares to sell.", "danger")
-            return redirect(url_for("sell_stock", stock_id=stock.id))
+        price = Decimal(stock.price)
+        total_amount = (price * shares).quantize(Decimal("0.01"))
 
-        total_value = Decimal(stock.price) * shares
+        if action == "buy" and cash_account.balance < total_amount:
+            flash("Insufficient cash balance for this purchase.", "danger")
+            return redirect(url_for("stock_transaction", stock_id=stock.id))
 
-        order = Order(
+        if action == "sell" and owned < shares:
+            flash("You do not own enough shares to sell that amount.", "danger")
+            return redirect(url_for("stock_transaction", stock_id=stock.id))
+
+        transaction = Transaction(
             user_id=current_user.id,
+            txn_type=action,
+            status="completed" if market_open else "pending",
+            amount=total_amount,
             stock_id=stock.id,
-            side="sell",
             shares=shares,
-            price_at_submit=stock.price,
-            status="executed",
-            executed_at=datetime.utcnow()
+            price=price,
+            notes=f"{action.capitalize()} {shares} share(s) of {stock.ticker}",
+            completed_at=datetime.utcnow() if market_open else None,
         )
-        db.session.add(order)
+        db.session.add(transaction)
         db.session.flush()
 
-        holding.shares = holding.shares - shares
-        if holding.shares == 0:
-            db.session.delete(holding)
+        if market_open:
+            execute_pending_order(transaction)
+            # execute_pending_order only completes pending txns, so handle direct completed txns here.
+            if transaction.txn_type == "buy":
+                holding = Holding.query.filter_by(user_id=current_user.id, stock_id=stock.id).first()
+                if not holding:
+                    holding = Holding(
+                        user_id=current_user.id,
+                        stock_id=stock.id,
+                        shares=0,
+                        avg_cost=Decimal("0.00"),
+                    )
+                    db.session.add(holding)
+                    db.session.flush()
 
-        cash = CashAccount.query.filter_by(user_id=current_user.id).first()
-        if not cash:
-            cash = CashAccount(user_id=current_user.id, balance=Decimal("0.00"))
-            db.session.add(cash)
-            db.session.flush()
+                old_total_cost = Decimal(holding.avg_cost) * holding.shares
+                new_total_cost = old_total_cost + total_amount
+                new_total_shares = holding.shares + shares
 
-        cash.balance = cash.balance + total_value
+                holding.shares = new_total_shares
+                holding.avg_cost = (new_total_cost / new_total_shares).quantize(Decimal("0.01"))
+                cash_account.balance = cash_account.balance - total_amount
+            else:
+                holding = Holding.query.filter_by(user_id=current_user.id, stock_id=stock.id).first()
+                if holding:
+                    holding.shares = holding.shares - shares
+                    if holding.shares == 0:
+                        db.session.delete(holding)
+                cash_account.balance = cash_account.balance + total_amount
+
+        db.session.commit()
+
+        if market_open:
+            flash(f"{action.capitalize()} completed successfully.", "success")
+        else:
+            flash(f"Market is closed. Your {action} transaction was saved as pending.", "warning")
+        return redirect(url_for("transactions"))
+
+    return render_template(
+        "transaction.html",
+        stock=stock,
+        cash_balance=cash_account.balance,
+        owned=owned,
+        market_open=market_open,
+        market_now=market_now,
+        settings=get_market_settings(),
+    )
 
 @app.route("/portfolio")
 @login_required
