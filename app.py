@@ -319,8 +319,17 @@ def logout():
 # Home
 @app.route("/")
 @login_required
+@app.route("/")
+@login_required
 def home():
-    return render_template("home.html")
+    market_now = arizona_now()
+    settings = get_market_settings()
+    return render_template(
+        "home.html",
+        market_open=is_market_open(market_now),
+        market_now=market_now,
+        settings=settings,
+    )
 
 
 # Placeholder user pages
