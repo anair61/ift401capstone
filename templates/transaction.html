@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 760px;">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h1 class="h4 mb-1">Transaction for {{ stock.ticker }}</h1>
+          <div class="text-muted small">{{ stock.company_name }}</div>
+        </div>
+        {% if market_open %}
+          <span class="badge text-bg-success">Market Open</span>
+        {% else %}
+          <span class="badge text-bg-danger">Market Closed</span>
+        {% endif %}
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="alert alert-secondary mb-0">Current price: $<span id="sharePrice">{{ '%.2f'|format(stock.price) }}</span></div>
+        </div>
+        <div class="col-md-4">
+          <div class="alert alert-secondary mb-0">Cash balance: ${{ '%.2f'|format(cash_balance) }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="alert alert-secondary mb-0">Shares owned: {{ owned }}</div>
+        </div>
+      </div>
+
+      <p class="text-body-secondary small">Arizona time: {{ market_now.strftime('%Y-%m-%d %I:%M %p') }} | Hours: {{ settings.open_time }} to {{ settings.close_time }}</p>
+
+      <form method="post" id="transactionForm">
+        <div class="mb-3">
+          <label class="form-label">Transaction Type</label>
+          <select class="form-select" name="action" id="action" required>
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Shares</label>
+          <input class="form-control" name="shares" id="shares" type="number" min="1" required>
+        </div>
+
+        <div class="card border mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Preview</h2>
+            <p class="mb-1">Price per share: $<span id="previewPrice">{{ '%.2f'|format(stock.price) }}</span></p>
+            <p class="mb-1">Total shares: <span id="previewShares">0</span></p>
+            <p class="mb-0">Total amount: $<span id="previewTotal">0.00</span></p>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary" type="submit">Submit Transaction</button>
+          <a class="btn btn-outline-secondary" href="{{ url_for('stocks') }}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  const actionInput = document.getElementById('action');
+  const sharesInput = document.getElementById('shares');
+  const priceValue = parseFloat(document.getElementById('sharePrice').textContent);
+  const previewShares = document.getElementById('previewShares');
+  const previewTotal = document.getElementById('previewTotal');
+
+  function updatePreview() {
+    const shares = parseInt(sharesInput.value || '0', 10);
+    const total = shares > 0 ? shares * priceValue : 0;
+    previewShares.textContent = shares > 0 ? shares : 0;
+    previewTotal.textContent = total.toFixed(2);
+  }
+
+  sharesInput.addEventListener('input', updatePreview);
+  actionInput.addEventListener('change', updatePreview);
+  updatePreview();
+
+  document.getElementById('transactionForm').addEventListener('submit', function (event) {
+    const action = actionInput.value;
+    const shares = parseInt(sharesInput.value || '0', 10);
+
+    if (!shares || shares < 1) {
+      event.preventDefault();
+      alert('Please enter a valid number of shares.');
+      return;
+    }
+
+    const total = (shares * priceValue).toFixed(2);
+    const actionLabel = action === 'buy' ? 'Buy' : 'Sell';
+    const totalLabel = action === 'buy' ? 'Total cost' : 'Total money received';
+    const message = `${actionLabel} ${shares} share(s) of {{ stock.ticker }} at $${priceValue.toFixed(2)} per share?\n${totalLabel}: $${total}`;
+
+    if (!confirm(message)) {
+      event.preventDefault();
+    }
+  });
+</script>
+{% endblock %}
