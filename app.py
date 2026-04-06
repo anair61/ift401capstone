@@ -488,10 +488,13 @@ for h in holdings:
 @app.route("/transactions")
 @login_required
 def transactions():
-    all_transactions = Transaction.query.filter_by(
-        user_id=current_user.id
-    ).order_by(Transaction.created_at.desc()).all()
+    if is_market_open(arizona_now()):
+        pending_transactions = Transaction.query.filter_by(user_id=current_user.id, status="pending").all()
+        for txn in pending_transactions:
+            execute_pending_order(txn)
+        db.session.commit()
 
+    all_transactions = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.created_at.desc()).all()
     return render_template("transactions.html", transactions=all_transactions)
 
 
