@@ -3,15 +3,21 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-
 <div class="p-4 mb-4 bg-body-tertiary rounded-3 border">
-  <div class="row align-items-center">
+  <div class="row align-items-center g-3">
     <div class="col-md-8">
       <h1 class="h3 mb-2">Welcome, {{ current_user.username }}!</h1>
-      <p class="text-body-secondary mb-0">Role: {{ current_user.role }}</p>
+      <p class="text-body-secondary mb-1">Role: {{ current_user.role }}</p>
+      <p class="text-body-secondary mb-0">
+        Arizona time: {{ market_now.strftime('%Y-%m-%d %I:%M %p') }}
+      </p>
     </div>
-    <div class="col-md-4 text-md-end mt-3 mt-md-0">
-      <span class="badge text-bg-secondary fs-6">Administrator</span>
+    <div class="col-md-4 text-md-end">
+      {% if market_open %}
+        <span class="badge text-bg-success fs-6">Market Open</span>
+      {% else %}
+        <span class="badge text-bg-danger fs-6">Market Closed</span>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -20,18 +26,14 @@
   <div class="card shadow-sm border">
     <div class="card-body p-4">
       <h2 class="h4 mb-2">Admin Dashboard</h2>
-      <p class="text-body-secondary mb-4">
-        This is a simplified admin view for managing market settings and demonstrating the Flask application interface.
-      </p>
+      <p class="text-body-secondary mb-4">Manage the market schedule and trading hours for the project.</p>
 
       <div class="row g-3 mb-4">
         <div class="col-md-6">
           <div class="card h-100 border">
             <div class="card-body">
               <h3 class="h5">Market Hours</h3>
-              <p class="text-body-secondary mb-3">
-                View and update opening and closing times for the market.
-              </p>
+              <p class="text-body-secondary mb-3">Current hours: {{ settings.open_time }} to {{ settings.close_time }}</p>
               <a href="{{ url_for('market_hours') }}" class="btn btn-outline-primary">Open Market Hours</a>
             </div>
           </div>
@@ -41,30 +43,26 @@
           <div class="card h-100 border">
             <div class="card-body">
               <h3 class="h5">Market Schedule</h3>
-              <p class="text-body-secondary mb-3">
-                Manage open days and configure holiday dates in the system.
-              </p>
+              <p class="text-body-secondary mb-3">Open days: {{ settings.active_days }}</p>
               <a href="{{ url_for('market_schedule') }}" class="btn btn-outline-secondary">Open Market Schedule</a>
             </div>
           </div>
         </div>
+      </div>
     </div>
   </div>
-
 {% else %}
   <div class="card shadow-sm border">
     <div class="card-body p-4">
       <h2 class="h4 mb-2">User Dashboard</h2>
-      <p class="text-body-secondary mb-4">
-        This is a prototype interface for the stock trading system.
-      </p>
+      <p class="text-body-secondary mb-4">Trade stocks, manage cash, and review your portfolio and activity.</p>
 
       <div class="row g-3">
         <div class="col-md-4">
           <div class="card h-100 border">
             <div class="card-body">
               <h3 class="h5">Stocks</h3>
-              <p class="text-body-secondary">View sample stock listings.</p>
+              <p class="text-body-secondary">View available stocks and open the transaction page.</p>
               <a href="{{ url_for('stocks') }}" class="btn btn-outline-primary">Open Stocks</a>
             </div>
           </div>
@@ -74,7 +72,7 @@
           <div class="card h-100 border">
             <div class="card-body">
               <h3 class="h5">Portfolio</h3>
-              <p class="text-body-secondary">View the portfolio placeholder page.</p>
+              <p class="text-body-secondary">View your cash balance, holdings, and total value.</p>
               <a href="{{ url_for('portfolio') }}" class="btn btn-outline-secondary">Open Portfolio</a>
             </div>
           </div>
@@ -84,7 +82,7 @@
           <div class="card h-100 border">
             <div class="card-body">
               <h3 class="h5">Transactions</h3>
-              <p class="text-body-secondary">View transaction history placeholder content.</p>
+              <p class="text-body-secondary">Review all buys, sells, deposits, and withdrawals in one place.</p>
               <a href="{{ url_for('transactions') }}" class="btn btn-outline-secondary">Open Transactions</a>
             </div>
           </div>
@@ -93,19 +91,9 @@
         <div class="col-md-6">
           <div class="card h-100 border">
             <div class="card-body">
-              <h3 class="h5">Deposit</h3>
-              <p class="text-body-secondary">Access the deposit placeholder interface.</p>
-              <a href="{{ url_for('deposit') }}" class="btn btn-outline-success">Open Deposit</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-6">
-          <div class="card h-100 border">
-            <div class="card-body">
-              <h3 class="h5">Withdraw</h3>
-              <p class="text-body-secondary">Access the withdraw placeholder interface.</p>
-              <a href="{{ url_for('withdraw') }}" class="btn btn-outline-warning">Open Withdraw</a>
+              <h3 class="h5">Cash</h3>
+              <p class="text-body-secondary">Deposit and withdraw from a single page.</p>
+              <a href="{{ url_for('cash') }}" class="btn btn-outline-success">Open Cash</a>
             </div>
           </div>
         </div>
@@ -113,5 +101,4 @@
     </div>
   </div>
 {% endif %}
-
 {% endblock %}
