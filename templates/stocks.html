@@ -4,13 +4,14 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-12 col-lg-10">
+  <div class="col-12 col-lg-11">
     <div class="card shadow-sm border-0">
       <div class="card-body p-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
           <div>
             <h1 class="h4 mb-1">Stocks List</h1>
-            <p class="text-muted mb-0">Sample stock listings for the project prototype.</p>
+            <p class="text-muted mb-0">Arizona time: {{ market_now.strftime('%Y-%m-%d %I:%M %p') }}</p>
+            <p class="text-muted mb-0">Trading hours: {{ settings.open_time }} to {{ settings.close_time }} | Open days: {{ settings.active_days }}</p>
           </div>
 
           {% if market_open %}
@@ -33,13 +34,13 @@
             <tbody>
               {% for stock in stocks %}
               <tr>
-              <td>{{ stock.company_name }}</td>
-              <td>{{ stock.ticker }}</td>
-              <td>${{ '%.2f'|format(stock.price) }}</td>
-              <td>
-    <a class="btn btn-sm btn-primary" href="{{ url_for('stock_transaction', stock_id=stock.id) }}">Open Transaction</a>
-  </td>
-</tr>
+                <td>{{ stock.company_name }}</td>
+                <td>{{ stock.ticker }}</td>
+                <td>${{ '%.2f'|format(stock.price) }}</td>
+                <td>
+                  <a class="btn btn-sm btn-primary" href="{{ url_for('stock_transaction', stock_id=stock.id) }}">Open Transaction</a>
+                </td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
