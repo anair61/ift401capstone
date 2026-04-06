@@ -79,26 +79,26 @@ class Transaction(db.Model):
     __tablename__ = "transactions"
 
     id = db.Column(db.Integer, primary_key=True)
-
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=True)
-
     txn_type = db.Column(
         db.Enum("buy", "sell", "deposit", "withdraw", name="txn_type_enum"),
-        nullable=False
+        nullable=False,
     )
-
+    status = db.Column(
+        db.Enum("pending", "completed", "cancelled", name="txn_status_enum"),
+        default="completed",
+        nullable=False,
+    )
     amount = db.Column(db.Numeric(12, 2), nullable=False)
-
     stock_id = db.Column(db.Integer, db.ForeignKey("stocks.id"), nullable=True)
     shares = db.Column(db.Integer, nullable=True)
     price = db.Column(db.Numeric(12, 2), nullable=True)
-
+    notes = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = db.Column(db.DateTime, nullable=True)
 
     stock = db.relationship("Stock", foreign_keys=[stock_id])
     user = db.relationship("Users", foreign_keys=[user_id])
-    order = db.relationship("Order", foreign_keys=[order_id])
 
 class MarketSettings(db.Model):
     __tablename__ = "market_settings"
