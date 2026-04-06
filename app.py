@@ -157,6 +157,8 @@ def get_market_settings() -> MarketSettings:
     db.session.commit()
     return settings
 
+def arizona_now() -> datetime:
+    return datetime.now(ARIZONA_TZ)
 
 def validate_time_string(value: str) -> str:
     parsed = datetime.strptime(value, "%H:%M")
