@@ -449,29 +449,32 @@ def stock_transaction(stock_id):
 @app.route("/portfolio")
 @login_required
 def portfolio():
-    cash_account = CashAccount.query.filter_by(user_id=current_user.id).first()
-    cash_balance = cash_account.balance if cash_account else Decimal("0.00")
+    cash_account = get_or_create_cash_account(current_user.id)
+cash_balance = cash_account.balance
 
-    holdings = Holding.query.filter_by(user_id=current_user.id).all()
+holdings = Holding.query.filter_by(user_id=current_user.id).all()
 
-    holdings_data = []
-    total_value = Decimal("0.00")
+holdings_data = []
+portfolio_value = Decimal("0.00")
 
-    for h in holdings:
-        stock = Stock.query.get(h.stock_id)
-        current_value = Decimal(stock.price) * h.shares
-        total_value += current_value
+for h in holdings:
+    stock = Stock.query.get(h.stock_id)
+    if not stock:
+        continue
 
-        holdings_data.append({
-            "ticker": stock.ticker,
-            "company": stock.company_name,
-            "shares": h.shares,
-            "avg_cost": h.avg_cost,
-            "price": stock.price,
-            "value": current_value
-        })
+    current_value = Decimal(stock.price) * h.shares
+    portfolio_value += current_value
 
-    account_total = cash_balance + total_value
+    holdings_data.append({
+        "ticker": stock.ticker,
+        "company_name": stock.company_name,
+        "shares": h.shares,
+        "avg_cost": Decimal(h.avg_cost),
+        "price": Decimal(stock.price),
+        "value": current_value,
+    })
+
+    account_total = cash_balance + portfolio_value
 
     return render_template(
         "portfolio.html",
