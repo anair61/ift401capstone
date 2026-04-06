@@ -172,7 +172,7 @@ def get_active_days_set(active_days: str):
 
 
 def is_market_open(now: datetime | None = None) -> bool:
-    now = now or datetime.now()
+    now = now or arizona_now()
     settings = get_market_settings()
 
     today_name = now.strftime("%a")
