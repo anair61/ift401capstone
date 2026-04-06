@@ -332,13 +332,19 @@ def home():
     )
 
 
-# Placeholder user pages
 @app.route("/stocks")
 @login_required
 def stocks():
-    market_open = is_market_open()
+    market_now = arizona_now()
+    settings = get_market_settings()
     all_stocks = Stock.query.order_by(Stock.company_name.asc()).all()
-    return render_template("stocks.html", market_open=market_open, stocks=all_stocks)
+    return render_template(
+        "stocks.html",
+        market_open=is_market_open(market_now),
+        market_now=market_now,
+        settings=settings,
+        stocks=all_stocks,
+    )
 
 @app.route("/transaction/<int:stock_id>", methods=["GET", "POST"])
 @login_required
