@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Stocks{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border mb-4">
+  <div class="card-body p-4">
+    <h1 class="h3 mb-3">Manage Stocks</h1>
+
+    <form method="POST" class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Company Name</label>
+        <input type="text" name="company_name" class="form-control" required>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Ticker</label>
+        <input type="text" name="ticker" class="form-control" required>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Price</label>
+        <input type="number" step="0.01" min="0.01" name="price" class="form-control" required>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Volume</label>
+        <input type="number" min="0" name="volume" class="form-control" required>
+      </div>
+
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">Add Stock</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card shadow-sm border">
+  <div class="card-body p-4">
+    <h2 class="h4 mb-3">Available Stocks</h2>
+
+    {% if stocks %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Company</th>
+            <th>Ticker</th>
+            <th>Price</th>
+            <th>Volume</th>
+            <th>Open</th>
+            <th>High</th>
+            <th>Low</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stock in stocks %}
+          <tr>
+            <td>{{ stock.id }}</td>
+            <td>{{ stock.company_name }}</td>
+            <td>{{ stock.ticker }}</td>
+            <td>${{ '%.2f'|format(stock.price) }}</td>
+            <td>{{ stock.volume }}</td>
+            <td>${{ '%.2f'|format(stock.open_price) }}</td>
+            <td>${{ '%.2f'|format(stock.high_price) }}</td>
+            <td>${{ '%.2f'|format(stock.low_price) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="mb-0">No stocks added yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
