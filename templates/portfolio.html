@@ -9,20 +9,29 @@
     <p class="text-body-secondary mb-4">Cash account and current holdings.</p>
 
     <div class="row g-3 mb-4">
-      <div class="col-md-6">
+      <div class="col-md-4">
         <div class="card h-100 border">
           <div class="card-body">
             <h2 class="h5">Cash Balance</h2>
-            <p class="mb-0">${{ cash_balance }}</p>
+            <p class="mb-0">${{ '%.2f'|format(cash_balance) }}</p>
           </div>
         </div>
       </div>
 
-      <div class="col-md-6">
+      <div class="col-md-4">
         <div class="card h-100 border">
           <div class="card-body">
             <h2 class="h5">Portfolio Value</h2>
-            <p class="mb-0">${{ portfolio_value }}</p>
+            <p class="mb-0">${{ '%.2f'|format(portfolio_value) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 border">
+          <div class="card-body">
+            <h2 class="h5">Account Total</h2>
+            <p class="mb-0">${{ '%.2f'|format(account_total) }}</p>
           </div>
         </div>
       </div>
@@ -47,9 +56,9 @@
               <td>{{ h.company_name }}</td>
               <td>{{ h.ticker }}</td>
               <td>{{ h.shares }}</td>
-              <td>${{ h.avg_cost }}</td>
-              <td>${{ h.price }}</td>
-              <td>${{ h.value }}</td>
+              <td>${{ '%.2f'|format(h.avg_cost) }}</td>
+              <td>${{ '%.2f'|format(h.price) }}</td>
+              <td>${{ '%.2f'|format(h.value) }}</td>
             </tr>
             {% endfor %}
           {% else %}
