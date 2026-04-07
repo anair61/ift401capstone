@@ -655,6 +655,57 @@ def add_holiday():
     flash("Holiday added.", "success")
     return redirect(url_for("market_schedule"))
 
+@app.route("/admin/stocks", methods=["GET", "POST"])
+@login_required
+@admin_required
+def admin_stocks():
+    if request.method == "POST":
+        company_name = (request.form.get("company_name") or "").strip()
+        ticker = (request.form.get("ticker") or "").strip().upper()
+
+        try:
+            price = Decimal(request.form.get("price", "0")).quantize(Decimal("0.01"))
+            volume = int(request.form.get("volume", "0"))
+        except (InvalidOperation, TypeError, ValueError):
+            flash("Enter valid stock details.", "warning")
+            return redirect(url_for("admin_stocks"))
+
+        if not company_name or not ticker:
+            flash("Company name and ticker are required.", "warning")
+            return redirect(url_for("admin_stocks"))
+
+        if price <= Decimal("0.00"):
+            flash("Price must be greater than 0.", "warning")
+            return redirect(url_for("admin_stocks"))
+
+        if volume < 0:
+            flash("Volume cannot be negative.", "warning")
+            return redirect(url_for("admin_stocks"))
+
+        existing_stock = Stock.query.filter_by(ticker=ticker).first()
+        if existing_stock:
+            flash("Ticker already exists.", "danger")
+            return redirect(url_for("admin_stocks"))
+
+        stock = Stock(
+            company_name=company_name,
+            ticker=ticker,
+            price=price,
+            volume=volume,
+            open_price=price,
+            high_price=price,
+            low_price=price,
+        )
+
+        db.session.add(stock)
+        db.session.commit()
+
+        flash("Stock added successfully.", "success")
+        return redirect(url_for("admin_stocks"))
+
+    all_stocks = Stock.query.order_by(Stock.company_name.asc()).all()
+    return render_template("admin_stocks.html", stocks=all_stocks)
+
 
 @app.route("/admin/holidays/<int:holiday_id>/delete", methods=["POST"])
 @login_required
