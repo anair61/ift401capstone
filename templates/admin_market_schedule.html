@@ -3,82 +3,40 @@
 {% block title %}Market Schedule{% endblock %}
 
 {% block content %}
-
 <div class="card shadow-sm border">
   <div class="card-body p-4">
-
     <h1 class="h4 mb-2">Market Schedule</h1>
-    <p class="text-body-secondary mb-4">Open days and holidays</p>
+    <p class="text-body-secondary mb-4">Choose open days and holidays.</p>
 
     <div class="row">
-
-      <!-- Open Days -->
       <div class="col-md-6 mb-4">
         <h5>Open Days</h5>
-
         <form method="post" action="{{ url_for('market_schedule') }}">
-
+          {% for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="mon" {% if settings.mon %}checked{% endif %}>
-            <label class="form-check-label">Monday</label>
+            <input class="form-check-input" type="checkbox" name="active_days" value="{{ day }}" {% if day in selected_days %}checked{% endif %}>
+            <label class="form-check-label">{{ day }}</label>
           </div>
-
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="tue" {% if settings.tue %}checked{% endif %}>
-            <label class="form-check-label">Tuesday</label>
-          </div>
-
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="wed" {% if settings.wed %}checked{% endif %}>
-            <label class="form-check-label">Wednesday</label>
-          </div>
-
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="thu" {% if settings.thu %}checked{% endif %}>
-            <label class="form-check-label">Thursday</label>
-          </div>
-
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="fri" {% if settings.fri %}checked{% endif %}>
-            <label class="form-check-label">Friday</label>
-          </div>
-
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="sat" {% if settings.sat %}checked{% endif %}>
-            <label class="form-check-label">Saturday</label>
-          </div>
-
-          <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" name="sun" {% if settings.sun %}checked{% endif %}>
-            <label class="form-check-label">Sunday</label>
-          </div>
-
-          <button class="btn btn-primary btn-sm">Save Schedule</button>
+          {% endfor %}
+          <button class="btn btn-primary btn-sm mt-3">Save Schedule</button>
         </form>
       </div>
 
-      <!-- Holidays -->
       <div class="col-md-6">
-
         <h5>Add Holiday</h5>
-
         <form method="post" action="{{ url_for('add_holiday') }}" class="mb-3">
-
           <div class="mb-2">
             <label class="form-label">Date (YYYY-MM-DD)</label>
             <input class="form-control" name="day" required>
           </div>
-
           <div class="mb-2">
             <label class="form-label">Name</label>
             <input class="form-control" name="name">
           </div>
-
           <button class="btn btn-outline-secondary btn-sm">Add Holiday</button>
         </form>
 
         <h5>Holidays</h5>
-
         <table class="table table-bordered table-hover align-middle">
           <thead>
             <tr>
@@ -87,19 +45,18 @@
               <th>Action</th>
             </tr>
           </thead>
-
           <tbody>
             {% if holidays and holidays|length > 0 %}
               {% for h in holidays %}
-                <tr>
-                  <td>{{ h.day.strftime('%m/%d/%Y') }}</td>
-                  <td>{{ h.name or '' }}</td>
-                  <td>
-                    <form method="post" action="{{ url_for('delete_holiday', holiday_id=h.id) }}">
-                      <button class="btn btn-danger btn-sm">Remove</button>
-                    </form>
-                  </td>
-                </tr>
+              <tr>
+                <td>{{ h.day.strftime('%m/%d/%Y') }}</td>
+                <td>{{ h.name or '' }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('delete_holiday', holiday_id=h.id) }}">
+                    <button class="btn btn-danger btn-sm">Remove</button>
+                  </form>
+                </td>
+              </tr>
               {% endfor %}
             {% else %}
               <tr>
@@ -108,11 +65,8 @@
             {% endif %}
           </tbody>
         </table>
-
       </div>
-
     </div>
   </div>
 </div>
-
 {% endblock %}
