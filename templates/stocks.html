@@ -1,52 +1,172 @@
 {% extends "base.html" %}
-
+ 
 {% block title %}Stocks{% endblock %}
-
+ 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-lg-11">
-    <div class="card shadow-sm border-0">
-      <div class="card-body p-4">
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-          <div>
-            <h1 class="h4 mb-1">Stocks List</h1>
-            <p class="text-muted mb-0">Arizona time: {{ market_now.strftime('%Y-%m-%d %I:%M %p') }}</p>
-            <p class="text-muted mb-0">Trading hours: {{ settings.open_time }} to {{ settings.close_time }} | Open days: {{ settings.active_days }}</p>
-          </div>
-
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div>
+        <h1 class="h3 mb-1">Stocks</h1>
+        <p class="text-body-secondary mb-0">Browse and trade available stocks</p>
+      </div>
+      <div>
+        <div class="text-end">
           {% if market_open %}
-            <span class="badge text-bg-success">Market Open</span>
+            <div class="badge bg-success text-white px-3 py-2">
+              Market Open
+            </div>
+            <div class="small text-muted mt-1">{{ settings.open_time }} - {{ settings.close_time }} AZ</div>
           {% else %}
-            <span class="badge text-bg-danger">Market Closed</span>
+            <div class="badge bg-danger text-white px-3 py-2">
+              Market Closed
+            </div>
+            <div class="small text-muted mt-1">Opens {{ settings.open_time }} AZ</div>
           {% endif %}
-        </div>
-
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Company Name</th>
-                <th>Ticker</th>
-                <th>Price</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for stock in stocks %}
-              <tr>
-                <td>{{ stock.company_name }}</td>
-                <td>{{ stock.ticker }}</td>
-                <td>${{ '%.2f'|format(stock.price) }}</td>
-                <td>
-                  <a class="btn btn-sm btn-primary" href="{{ url_for('stock_transaction', stock_id=stock.id) }}">Open Transaction</a>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
   </div>
 </div>
+ 
+<!-- Market Info Cards -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="info-card"> 
+      <div class="info-label">Available Stocks</div>
+      <div class="info-value">{{ stocks|length }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="info-card">
+      <div class="info-label">Cash Balance</div>
+      <div class="info-value text-success">${{ '{:,.2f}'.format(cash_balance) }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="info-card">
+      <div class="info-label">Market Status</div>
+      <div class="info-value">
+        {% if market_open %}
+          <span class="text-success">Open</span>
+        {% else %}
+          <span class="text-danger">Closed</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- Stocks Table -->
+<div class="row g-4">
+  <div class="col-12">
+    <div class="table-card">
+      <table class="stocks-table">
+        <thead>
+          <tr>
+            <th>COMPANY</th>
+            <th>TICKER</th>
+            <th>CURRENT PRICE</th>
+            <th>VOLUME</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stock in stocks %}
+          <tr>
+            <td>{{ stock.company_name }}</td>
+            <td><span class="ticker-badge">{{ stock.ticker }}</span></td>
+            <td>${{ '{:,.2f}'.format(stock.price) }}</td>
+            <td>{{ '{:,}'.format(stock.volume) }}</td>
+            <td class="text-end">
+              <a href="{{ url_for('stock_transaction', stock_id=stock.id) }}" class="btn btn-outline-primary btn-sm">
+                Trade
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+ 
+<style>
+/* Info Cards */
+.info-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+ 
+.info-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+ 
+.info-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #F9FAFB;
+}
+ 
+/* Table Card */
+.table-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  overflow: hidden;
+}
+ 
+/* Stocks Table */
+.stocks-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+ 
+.stocks-table thead {
+  background: rgba(255, 255, 255, 0.05);
+}
+ 
+.stocks-table th {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+ 
+.stocks-table td {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: #D1D5DB;
+}
+ 
+.ticker-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #D1D5DB;
+}
+ 
+/* Buttons */
+.btn-outline-primary {
+  border-color: #3B82F6;
+  color: #3B82F6;
+}
+ 
+.btn-outline-primary:hover {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: white;
+}
+</style>
 {% endblock %}
