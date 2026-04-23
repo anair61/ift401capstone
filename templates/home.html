@@ -3,54 +3,186 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<div class="p-4 mb-4 bg-body-tertiary rounded-3 border">
-  <div class="row align-items-center g-3">
-    <div class="col-md-8">
-      <h1 class="h3 mb-2">Welcome, {{ current_user.username }}!</h1>
-      <p class="text-body-secondary mb-1">Role: {{ current_user.role }}</p>
-      <p class="text-body-secondary mb-0">
-        Arizona time: {{ market_now.strftime('%Y-%m-%d %I:%M %p') }}
-      </p>
-    </div>
-    <div class="col-md-4 text-md-end">
-      {% if market_open %}
-        <span class="badge text-bg-success fs-6">Market Open</span>
-      {% else %}
-        <span class="badge text-bg-danger fs-6">Market Closed</span>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-{% if current_user.role == "admin" %}
-  <div class="card shadow-sm border">
-    <div class="card-body p-4">
-      <h2 class="h4 mb-2">Admin Dashboard</h2>
-      <p class="text-body-secondary mb-4">Manage the market schedule and trading hours for the project.</p>
-
-      <div class="row g-3 mb-4">
-        <div class="col-md-6">
-          <div class="card h-100 border">
-            <div class="card-body">
-              <h3 class="h5">Market Hours</h3>
-              <p class="text-body-secondary mb-3">Current hours: {{ settings.open_time }} to {{ settings.close_time }}</p>
-              <a href="{{ url_for('market_hours') }}" class="btn btn-outline-primary">Open Market Hours</a>
-            </div>
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+          <div>
+            <h1 class="h3 mb-1">Welcome, {{ current_user.full_name }}!</h1>
+            <p class="text-body-secondary mb-0">
+              <span class="badge bg-secondary me-2">{{ current_user.role|capitalize }}</span>
+              Arizona time: {{ market_now.strftime('%Y-%m-%d %I:%M %p') }}
+            </p>
           </div>
-        </div>
-
-        <div class="col-md-6">
-          <div class="card h-100 border">
-            <div class="card-body">
-              <h3 class="h5">Market Schedule</h3>
-              <p class="text-body-secondary mb-3">Open days: {{ settings.active_days }}</p>
-              <a href="{{ url_for('market_schedule') }}" class="btn btn-outline-secondary">Open Market Schedule</a>
+          <div>
+            <div class="text-end">
+              {% if market_open %}
+                <div class="badge bg-success text-white px-3 py-2">
+                  <span class="pulse-dot me-2"></span>Market Open
+                </div>
+                <div class="small text-muted mt-1">{{ settings.open_time }} - {{ settings.close_time }} AZ</div>
+              {% else %}
+                <div class="badge bg-danger text-white px-3 py-2">
+                  Market Closed
+                </div>
+                <div class="small text-muted mt-1">Opens {{ settings.open_time }} AZ</div>
+              {% endif %}
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+</div>
+
+{% if is_admin %}
+<!-- ADMIN DASHBOARD -->
+<!-- System Stats -->
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-2">
+          <div class="flex-grow-1">
+            <p class="text-body-secondary mb-1 small">Total Users</p>
+            <h3 class="mb-0">{{ total_users }}</h3>
+          </div>
+          <div class="text-primary fs-3">👥</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-2">
+          <div class="flex-grow-1">
+            <p class="text-body-secondary mb-1 small">Total Stocks</p>
+            <h3 class="mb-0">{{ total_stocks }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-2">
+          <div class="flex-grow-1">
+            <p class="text-body-secondary mb-1 small">Total Transactions</p>
+            <h3 class="mb-0">{{ total_transactions }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-2">
+          <div class="flex-grow-1">
+            <p class="text-body-secondary mb-1 small">Pending Orders</p>
+            <h3 class="mb-0">{{ pending_orders }}</h3>
+          </div>
+          <div class="text-warning fs-3">⏳</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Quick Actions -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <h5 class="mb-3">Admin Controls</h5>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100 hover-lift">
+      <div class="card-body text-center p-4">
+        <div class="fs-1 mb-3">📊</div>
+        <h6 class="mb-2">Manage Stocks</h6>
+        <p class="text-body-secondary small mb-3">Add and manage stocks in the system</p>
+        <a href="{{ url_for('admin_stocks') }}" class="btn btn-outline-primary btn-sm btn-hover-fill">Manage Stocks</a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100 hover-lift">
+      <div class="card-body text-center p-4">
+        <div class="fs-1 mb-3">🕐</div>
+        <h6 class="mb-2">Market Hours</h6>
+        <p class="text-body-secondary small mb-3">Configure trading hours</p>
+        <a href="{{ url_for('market_hours') }}" class="btn btn-outline-primary btn-sm btn-hover-fill">Set Hours</a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100 hover-lift">
+      <div class="card-body text-center p-4">
+        <div class="fs-1 mb-3">📅</div>
+        <h6 class="mb-2">Market Schedule</h6>
+        <p class="text-body-secondary small mb-3">Set active days and holidays</p>
+        <a href="{{ url_for('market_schedule') }}" class="btn btn-outline-primary btn-sm btn-hover-fill">Set Schedule</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent System Activity -->
+<div class="row g-4">
+  <div class="col-12">
+    <div class="table-card">
+      <div class="d-flex justify-content-between align-items-center mb-3 px-4 pt-4">
+        <h5 class="mb-0">Recent System Activity</h5>
+        <a href="{{ url_for('transactions') }}" class="btn btn-sm btn-outline-primary">View All</a>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>DATE</th>
+              <th>USER</th>
+              <th>TYPE</th>
+              <th>STOCK</th>
+              <th>SHARES</th>
+              <th>AMOUNT</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for txn in recent_transactions %}
+            <tr>
+              <td class="small">{{ txn.created_at.strftime('%m/%d %H:%M') }}</td>
+              <td class="small">{{ txn.user.username }}</td>
+              <td><span class="type-badge">{{ txn.txn_type|capitalize }}</span></td>
+              <td>{{ txn.stock.ticker if txn.stock else '-' }}</td>
+              <td>{{ txn.shares if txn.shares else '-' }}</td>
+              <td>${{ '%.2f'|format(txn.amount) }}</td>
+              <td>
+                {% if txn.status == 'completed' %}
+                  <span class="badge text-bg-success">Completed</span>
+                {% elif txn.status == 'pending' %}
+                  <span class="badge text-bg-warning">Pending</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">Cancelled</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 {% else %}
   <div class="card shadow-sm border">
     <div class="card-body p-4">
@@ -101,4 +233,29 @@
     </div>
   </div>
 {% endif %}
+<style>
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/ Hover Effects /
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+</style>
 {% endblock %}
