@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-
+ 
 {% block title %}Home{% endblock %}
-
+ 
 {% block content %}
 <div class="row g-4 mb-4">
   <div class="col-12">
@@ -35,7 +35,7 @@
     </div>
   </div>
 </div>
-
+ 
 {% if is_admin %}
 <!-- ADMIN DASHBOARD -->
 <!-- System Stats -->
@@ -94,7 +94,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Admin Quick Actions -->
 <div class="row g-4 mb-4">
   <div class="col-12">
@@ -134,7 +134,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Recent System Activity -->
 <div class="row g-4">
   <div class="col-12">
@@ -183,56 +183,142 @@
     </div>
   </div>
 </div>
+ 
 {% else %}
-  <div class="card shadow-sm border">
-    <div class="card-body p-4">
-      <h2 class="h4 mb-2">User Dashboard</h2>
-      <p class="text-body-secondary mb-4">Trade stocks, manage cash, and review your portfolio and activity.</p>
-
-      <div class="row g-3">
-        <div class="col-md-4">
-          <div class="card h-100 border">
-            <div class="card-body">
-              <h3 class="h5">Stocks</h3>
-              <p class="text-body-secondary">View available stocks and open the transaction page.</p>
-              <a href="{{ url_for('stocks') }}" class="btn btn-outline-primary">Open Stocks</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-4">
-          <div class="card h-100 border">
-            <div class="card-body">
-              <h3 class="h5">Portfolio</h3>
-              <p class="text-body-secondary">View your cash balance, holdings, and total value.</p>
-              <a href="{{ url_for('portfolio') }}" class="btn btn-outline-secondary">Open Portfolio</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-4">
-          <div class="card h-100 border">
-            <div class="card-body">
-              <h3 class="h5">Transactions</h3>
-              <p class="text-body-secondary">Review all buys, sells, deposits, and withdrawals in one place.</p>
-              <a href="{{ url_for('transactions') }}" class="btn btn-outline-secondary">Open Transactions</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-6">
-          <div class="card h-100 border">
-            <div class="card-body">
-              <h3 class="h5">Cash</h3>
-              <p class="text-body-secondary">Deposit and withdraw from a single page.</p>
-              <a href="{{ url_for('cash') }}" class="btn btn-outline-success">Open Cash</a>
-            </div>
-          </div>
-        </div>
+ 
+<!-- USER DASHBOARD -->
+<!-- User Dashboard Stats -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <p class="text-body-secondary mb-1 small">Cash Balance</p>
+        <h3 class="mb-0">${{ '%.2f'|format(cash_balance) }}</h3>
       </div>
     </div>
   </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <p class="text-body-secondary mb-1 small">Portfolio Value</p>
+        <h3 class="mb-0">${{ '%.2f'|format(portfolio_value) }}</h3>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <p class="text-body-secondary mb-1 small">Total Account Value</p>
+        <h3 class="mb-0">${{ '%.2f'|format(total_value) }}</h3>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- User Quick Actions -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <h5 class="mb-3">Quick Actions</h5>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100 hover-lift">
+      <div class="card-body text-center p-4">
+        <div class="fs-1 mb-3">📈</div>
+        <h6 class="mb-2">Stocks</h6>
+        <p class="text-body-secondary small mb-3">View available stocks and trade</p>
+        <a href="{{ url_for('stocks') }}" class="btn btn-outline-primary btn-sm btn-hover-fill">Browse Stocks</a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100 hover-lift">
+      <div class="card-body text-center p-4">
+        <div class="fs-1 mb-3">💼</div>
+        <h6 class="mb-2">Portfolio</h6>
+        <p class="text-body-secondary small mb-3">View your holdings and performance</p>
+        <a href="{{ url_for('portfolio') }}" class="btn btn-outline-primary btn-sm btn-hover-fill">View Portfolio</a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100 hover-lift">
+      <div class="card-body text-center p-4">
+        <div class="fs-1 mb-3">📋</div>
+        <h6 class="mb-2">Transactions</h6>
+        <p class="text-body-secondary small mb-3">Review your trading history</p>
+        <a href="{{ url_for('transactions') }}" class="btn btn-outline-primary btn-sm btn-hover-fill">View History</a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100 hover-lift">
+      <div class="card-body text-center p-4">
+        <div class="fs-1 mb-3">💳</div>
+        <h6 class="mb-2">Cash</h6>
+        <p class="text-body-secondary small mb-3">Deposit or withdraw funds</p>
+        <a href="{{ url_for('cash') }}" class="btn btn-outline-primary btn-sm btn-hover-fill">Manage Cash</a>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- User Recent Activity -->
+{% if recent_transactions %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="table-card">
+      <div class="d-flex justify-content-between align-items-center mb-3 px-4 pt-4">
+        <h5 class="mb-0">Recent Activity</h5>
+        <a href="{{ url_for('transactions') }}" class="btn btn-sm btn-outline-primary">View All</a>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>DATE</th>
+              <th>TYPE</th>
+              <th>STOCK</th>
+              <th>SHARES</th>
+              <th>AMOUNT</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for txn in recent_transactions %}
+            <tr>
+              <td class="small">{{ txn.created_at.strftime('%m/%d %H:%M') }}</td>
+              <td><span class="type-badge">{{ txn.txn_type|capitalize }}</span></td>
+              <td>{{ txn.stock.ticker if txn.stock else '-' }}</td>
+              <td>{{ txn.shares if txn.shares else '-' }}</td>
+              <td>${{ '%.2f'|format(txn.amount) }}</td>
+              <td>
+                {% if txn.status == 'completed' %}
+                  <span class="badge text-bg-success">Completed</span>
+                {% elif txn.status == 'pending' %}
+                  <span class="badge text-bg-warning">Pending</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">Cancelled</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
+ 
+{% endif %}
+ 
 <style>
 .pulse-dot {
   display: inline-block;
@@ -242,20 +328,21 @@
   border-radius: 50%;
   animation: pulse 2s infinite;
 }
-
+ 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
-
-/ Hover Effects /
+ 
+/* Hover Effects */
 .hover-lift {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
+ 
 .hover-lift:hover {
   transform: translateY(-4px);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
 }
 </style>
 {% endblock %}
+ 
