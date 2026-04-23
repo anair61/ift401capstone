@@ -3,44 +3,103 @@
 {% block title %}Cash{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm border" style="max-width: 700px; margin: auto;">
-  <div class="card-body p-4">
-    <h1 class="h3 mb-2">Cash Management</h1>
-    <p class="text-body-secondary mb-4">Current cash balance: ${{ '%.2f'|format(cash_balance) }}</p>
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <h1 class="h3 mb-1">Cash Management</h1>
+    <p class="text-body-secondary mb-0">Current cash balance: <span class="fw-bold text-success">${{ '%.2f'|format(cash_balance) }}</span></p>
+  </div>
+</div>
 
-    <div class="row g-4">
-      <div class="col-md-6">
-        <div class="card border h-100">
-          <div class="card-body">
-            <h2 class="h5 mb-3">Deposit</h2>
-            <form method="post">
-              <input type="hidden" name="action" value="deposit">
-              <div class="mb-3">
-                <label class="form-label">Amount</label>
-                <input class="form-control" name="amount" placeholder="100.00" required>
-              </div>
-              <button class="btn btn-success" type="submit">Deposit</button>
-            </form>
-          </div>
+<!-- Deposit and Withdraw Cards -->
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="form-card">
+      <h5 class="mb-3">Deposit Cash</h5>
+      <p class="text-body-secondary small mb-3">Add funds to your account</p>
+      
+      <form method="post">
+        <input type="hidden" name="action" value="deposit">
+        <div class="mb-3">
+          <label class="form-label">Amount</label>
+          <input class="form-control" name="amount" type="number" step="0.01" min="0.01" placeholder="100.00" required>
         </div>
-      </div>
+        <button class="btn btn-outline-success" type="submit">Deposit Funds</button>
+      </form>
+    </div>
+  </div>
 
-      <div class="col-md-6">
-        <div class="card border h-100">
-          <div class="card-body">
-            <h2 class="h5 mb-3">Withdraw</h2>
-            <form method="post">
-              <input type="hidden" name="action" value="withdraw">
-              <div class="mb-3">
-                <label class="form-label">Amount</label>
-                <input class="form-control" name="amount" placeholder="50.00" required>
-              </div>
-              <button class="btn btn-warning" type="submit">Withdraw</button>
-            </form>
-          </div>
+  <div class="col-md-6">
+    <div class="form-card">
+      <h5 class="mb-3">Withdraw Cash</h5>
+      <p class="text-body-secondary small mb-3">Transfer funds out of your account</p>
+      
+      <form method="post">
+        <input type="hidden" name="action" value="withdraw">
+        <div class="mb-3">
+          <label class="form-label">Amount</label>
+          <input class="form-control" name="amount" type="number" step="0.01" min="0.01" placeholder="50.00" required>
         </div>
-      </div>
+        <button class="btn btn-outline-warning" type="submit">Withdraw Funds</button>
+      </form>
     </div>
   </div>
 </div>
+
+<style>
+/* Form Card */
+.form-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 2rem;
+}
+
+/* Form Styling */
+.form-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #9CA3AF;
+  margin-bottom: 0.5rem;
+}
+
+.form-control {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #F9FAFB;
+  padding: 0.75rem 1rem;
+}
+
+.form-control:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #F9FAFB;
+  box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.15);
+}
+
+.form-control::placeholder {
+  color: #6B7280;
+}
+
+/* Buttons */
+.btn-outline-success {
+  border-color: #10B981;
+  color: #10B981;
+}
+
+.btn-outline-success:hover {
+  background: #10B981;
+  border-color: #10B981;
+  color: white;
+}
+
+.btn-outline-warning {
+  border-color: #F59E0B;
+  color: #F59E0B;
+}
+
+.btn-outline-warning:hover {
+  background: #F59E0B;
+  border-color: #F59E0B;
+  color: white;
+}
+</style>
 {% endblock %}
