@@ -2,15 +2,16 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from functools import wraps
 from zoneinfo import ZoneInfo
+import random
 
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
+from flask_apscheduler import APScheduler
 
 app = Flask(__name__)
 
-# MySQL connection
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:rootpassword@localhost/proj_db"
 app.config["SECRET_KEY"] = "your-secret-key-here"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -18,13 +19,15 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 ARIZONA_TZ = ZoneInfo("America/Phoenix")
 
 db = SQLAlchemy(app)
-login_manager = LoginManager()
+login_manager = LoginManager(app)
 login_manager.login_view = "login"
-
 bcrypt = Bcrypt(app)
 
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
 
-# Models
+
 class Users(UserMixin, db.Model):
     __tablename__ = "users"
 
@@ -58,6 +61,7 @@ class Stock(db.Model):
     high_price = db.Column(db.Numeric(12, 2), nullable=False)
     low_price = db.Column(db.Numeric(12, 2), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    last_update = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
 class Holding(db.Model):
@@ -66,7 +70,6 @@ class Holding(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     stock_id = db.Column(db.Integer, db.ForeignKey("stocks.id"), nullable=False)
-
     shares = db.Column(db.Integer, default=0, nullable=False)
     avg_cost = db.Column(db.Numeric(12, 2), default=Decimal("0.00"), nullable=False)
 
@@ -80,15 +83,8 @@ class Transaction(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    txn_type = db.Column(
-        db.Enum("buy", "sell", "deposit", "withdraw", name="txn_type_enum"),
-        nullable=False,
-    )
-    status = db.Column(
-        db.Enum("pending", "completed", "cancelled", name="txn_status_enum"),
-        default="completed",
-        nullable=False,
-    )
+    txn_type = db.Column(db.Enum("buy", "sell", "deposit", "withdraw", name="txn_type_enum"), nullable=False)
+    status = db.Column(db.Enum("pending", "completed", "cancelled", name="txn_status_enum"), default="completed", nullable=False)
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     stock_id = db.Column(db.Integer, db.ForeignKey("stocks.id"), nullable=True)
     shares = db.Column(db.Integer, nullable=True)
@@ -100,19 +96,14 @@ class Transaction(db.Model):
     stock = db.relationship("Stock", foreign_keys=[stock_id])
     user = db.relationship("Users", foreign_keys=[user_id])
 
+
 class MarketSettings(db.Model):
     __tablename__ = "market_settings"
 
     id = db.Column(db.Integer, primary_key=True)
-
-    # validated using datetime.strptime
     open_time = db.Column(db.String(5), default="09:30", nullable=False)
     close_time = db.Column(db.String(5), default="16:00", nullable=False)
-
-    # replaces 7 boolean columns
-    # example: "Mon,Tue,Wed,Thu,Fri"
     active_days = db.Column(db.String(50), default="Mon,Tue,Wed,Thu,Fri", nullable=False)
-
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
@@ -120,17 +111,30 @@ class MarketHoliday(db.Model):
     __tablename__ = "market_holidays"
 
     id = db.Column(db.Integer, primary_key=True)
-
     market_settings_id = db.Column(db.Integer, db.ForeignKey("market_settings.id"), nullable=False)
-
     day = db.Column(db.Date, unique=True, nullable=False)
     name = db.Column(db.String(200), nullable=True)
-
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+@scheduler.task('interval', id='update_prices_and_execute_orders', seconds=30)
+def auto_update_prices():
+    with app.app_context():
+        if is_market_open(arizona_now()):
+            # Update all stock prices
+            stocks = Stock.query.all()
+            for stock in stocks:
+                update_stock_price(stock)
+            
+            # Execute pending orders
+            pending = Transaction.query.filter_by(status="pending").all()
+            for txn in pending:
+                execute_pending_order(txn)
+            
+            db.session.commit()
+            print(f"[{arizona_now().strftime('%H:%M:%S')}] Updated prices and executed pending orders")
 
 @login_manager.user_loader
-def load_user(user_id: str):
+def load_user(user_id):
     return Users.query.get(int(user_id))
 
 
@@ -143,35 +147,26 @@ def admin_required(f):
     return decorated_function
 
 
-def get_market_settings() -> MarketSettings:
+def get_market_settings():
     settings = MarketSettings.query.first()
     if settings:
         return settings
 
-    settings = MarketSettings(
-        open_time="09:30",
-        close_time="16:00",
-        active_days="Mon,Tue,Wed,Thu,Fri"
-    )
+    settings = MarketSettings(open_time="09:30", close_time="16:00", active_days="Mon,Tue,Wed,Thu,Fri")
     db.session.add(settings)
     db.session.commit()
     return settings
 
-def arizona_now() -> datetime:
+def arizona_now():
     return datetime.now(ARIZONA_TZ)
 
-def validate_time_string(value: str) -> str:
-    parsed = datetime.strptime(value, "%H:%M")
-    return parsed.strftime("%H:%M")
-
-
-def get_active_days_set(active_days: str):
+def get_active_days_set(active_days):
     if not active_days:
         return set()
     return {day.strip() for day in active_days.split(",") if day.strip()}
 
 
-def is_market_open(now: datetime | None = None) -> bool:
+def is_market_open(now=None):
     now = now or arizona_now()
     settings = get_market_settings()
 
@@ -181,12 +176,8 @@ def is_market_open(now: datetime | None = None) -> bool:
     if today_name not in active_days:
         return False
 
-    holiday_exists = MarketHoliday.query.filter_by(
-        market_settings_id=settings.id,
-        day=now.date()
-    ).first()
-
-    if holiday_exists is not None:
+    holiday = MarketHoliday.query.filter_by(market_settings_id=settings.id, day=now.date()).first()
+    if holiday:
         return False
 
     open_t = datetime.strptime(settings.open_time, "%H:%M").time()
@@ -194,8 +185,9 @@ def is_market_open(now: datetime | None = None) -> bool:
 
     return open_t <= now.time() <= close_t
 
-def get_or_create_cash_account(user_id: int) -> CashAccount:
-    cash_account = CashAccount.query.filter_by(user_id=user_id).first()
+
+def get_or_create_cash_account(user_id):
+    cash_account = CashAccount.query.filter_by(user_id=user_id).first() 
     if cash_account:
         return cash_account
 
@@ -204,12 +196,31 @@ def get_or_create_cash_account(user_id: int) -> CashAccount:
     db.session.flush()
     return cash_account
 
-def execute_pending_order(txn: Transaction) -> None:
+
+def update_stock_price(stock):
+    change_percent = Decimal(str(random.uniform(-0.02, 0.02)))
+    new_price = stock.price * (Decimal("1.00") + change_percent)
+    new_price = new_price.quantize(Decimal("0.01"))
+
+    if new_price < Decimal("1.00"):
+        new_price = Decimal("1.00")
+
+    stock.price = new_price
+
+    if new_price > stock.high_price:
+        stock.high_price = new_price
+    if new_price < stock.low_price:
+        stock.low_price = new_price
+
+    stock.last_update = datetime.utcnow() 
+
+
+def execute_pending_order(txn):
     if txn.status != "pending":
         return
 
     stock = Stock.query.get(txn.stock_id)
-    if stock is None:
+    if not stock:
         return
 
     cash_account = get_or_create_cash_account(txn.user_id)
@@ -219,15 +230,10 @@ def execute_pending_order(txn: Transaction) -> None:
         if cash_account.balance < txn.amount:
             return
 
-        cash_account.balance = cash_account.balance - txn.amount
+        cash_account.balance -= txn.amount
 
         if not holding:
-            holding = Holding(
-                user_id=txn.user_id,
-                stock_id=txn.stock_id,
-                shares=0,
-                avg_cost=Decimal("0.00"),
-            )
+            holding = Holding(user_id=txn.user_id, stock_id=txn.stock_id, shares=0, avg_cost=Decimal("0.00"))
             db.session.add(holding)
             db.session.flush()
 
@@ -242,16 +248,17 @@ def execute_pending_order(txn: Transaction) -> None:
         if not holding or holding.shares < txn.shares:
             return
 
-        holding.shares = holding.shares - txn.shares
-        cash_account.balance = cash_account.balance + txn.amount
+        holding.shares -= txn.shares
+        cash_account.balance += txn.amount
 
         if holding.shares == 0:
             db.session.delete(holding)
 
     txn.status = "completed"
-    txn.completed_at = datetime.utcnow()
+    txn.completed_at = datetime.utcnow() 
 
-# Auth
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -273,7 +280,6 @@ def register():
             return redirect(url_for("register"))
 
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-
         user = Users(
             full_name=full_name,
             username=username,
@@ -315,22 +321,76 @@ def logout():
     logout_user()
     return redirect(url_for("login"))
 
+@app.route("/")
+def index():
+    return redirect(url_for("home"))
 
-# Home
-@app.route("/")
-@login_required
-@app.route("/")
+@app.route("/home")
 @login_required
 def home():
     market_now = arizona_now()
     settings = get_market_settings()
+
+    if is_market_open(market_now):
+        pending = Transaction.query.filter_by(user_id=current_user.id, status="pending").all()
+        for txn in pending:
+            execute_pending_order(txn)
+        db.session.commit()
+
+    # Check if user is admin
+    if current_user.role == "admin":
+        # Admin Dashboard Data
+        total_users = Users.query.count()
+        total_stocks = Stock.query.count()
+        total_transactions = Transaction.query.count()
+        pending_orders = Transaction.query.filter_by(status="pending").count()
+        
+        # Recent system transactions
+        recent_transactions = Transaction.query.order_by(
+            Transaction.created_at.desc()
+        ).limit(10).all()
+
+        return render_template(
+            "home.html",
+            market_open=is_market_open(market_now),
+            market_now=market_now,
+            settings=settings,
+            is_admin=True,
+            total_users=total_users,
+            total_stocks=total_stocks,
+            total_transactions=total_transactions,
+            pending_orders=pending_orders,
+            recent_transactions=recent_transactions,
+        )
+    
+    # Regular User Dashboard Data
+    cash_account = get_or_create_cash_account(current_user.id)
+    cash_balance = cash_account.balance
+
+    holdings = Holding.query.filter_by(user_id=current_user.id).all()
+    portfolio_value = Decimal("0.00")
+    for h in holdings:
+        stock = Stock.query.get(h.stock_id)
+        if stock:
+            portfolio_value += Decimal(stock.price) * h.shares
+
+    total_value = cash_balance + portfolio_value
+
+    recent_transactions = Transaction.query.filter_by(
+        user_id=current_user.id
+    ).order_by(Transaction.created_at.desc()).limit(5).all()
+
     return render_template(
         "home.html",
         market_open=is_market_open(market_now),
         market_now=market_now,
         settings=settings,
+        is_admin=False,
+        cash_balance=cash_balance,
+        portfolio_value=portfolio_value,
+        total_value=total_value,
+        recent_transactions=recent_transactions,
     )
-
 
 @app.route("/stocks")
 @login_required
@@ -338,12 +398,24 @@ def stocks():
     market_now = arizona_now()
     settings = get_market_settings()
     all_stocks = Stock.query.order_by(Stock.company_name.asc()).all()
+    
+    # Get cash balance for buying power display
+    cash_account = get_or_create_cash_account(current_user.id)
+    cash_balance = cash_account.balance
+
+    if is_market_open(market_now):
+        pending = Transaction.query.filter_by(user_id=current_user.id, status="pending").all()
+        for txn in pending:
+            execute_pending_order(txn)
+        db.session.commit()
+
     return render_template(
         "stocks.html",
         market_open=is_market_open(market_now),
         market_now=market_now,
         settings=settings,
         stocks=all_stocks,
+        cash_balance=cash_balance,
     )
 
 @app.route("/transaction/<int:stock_id>", methods=["GET", "POST"])
@@ -361,8 +433,10 @@ def stock_transaction(stock_id):
 
         try:
             shares = int(request.form.get("shares", "0"))
-        except ValueError:
-            flash("Enter a valid number of shares.", "warning")
+            # Use the locked price from the form instead of current stock price
+            locked_price = Decimal(request.form.get("locked_price", "0"))
+        except (ValueError, InvalidOperation):
+            flash("Invalid transaction data.", "warning")
             return redirect(url_for("stock_transaction", stock_id=stock.id))
 
         if action not in {"buy", "sell"}:
@@ -373,16 +447,20 @@ def stock_transaction(stock_id):
             flash("Shares must be greater than 0.", "warning")
             return redirect(url_for("stock_transaction", stock_id=stock.id))
 
-        price = Decimal(stock.price)
+        if locked_price <= Decimal("0.00"):
+            flash("Invalid price.", "danger")
+            return redirect(url_for("stock_transaction", stock_id=stock.id))
+
+        price = locked_price
         total_amount = (price * shares).quantize(Decimal("0.01"))
 
         if action == "buy" and cash_account.balance < total_amount:
-            flash("Insufficient cash balance for this purchase.", "danger")
+            flash("Insufficient cash balance.", "danger")
             return redirect(url_for("stock_transaction", stock_id=stock.id))
 
         if action == "sell" and owned < shares:
-            flash("You do not own enough shares to sell that amount.", "danger")
-            return redirect(url_for("stock_transaction", stock_id=stock.id))
+            flash("You do not own enough shares.", "danger")
+            return redirect(url_for("stock_transaction", stock_id=stock.id)) 
 
         transaction = Transaction(
             user_id=current_user.id,
@@ -399,10 +477,7 @@ def stock_transaction(stock_id):
         db.session.flush()
 
         if market_open:
-            execute_pending_order(transaction)
-            # execute_pending_order only completes pending txns, so handle direct completed txns here.
-            if transaction.txn_type == "buy":
-                holding = Holding.query.filter_by(user_id=current_user.id, stock_id=stock.id).first()
+            if action == "buy":
                 if not holding:
                     holding = Holding(
                         user_id=current_user.id,
@@ -419,21 +494,20 @@ def stock_transaction(stock_id):
 
                 holding.shares = new_total_shares
                 holding.avg_cost = (new_total_cost / new_total_shares).quantize(Decimal("0.01"))
-                cash_account.balance = cash_account.balance - total_amount
+                cash_account.balance -= total_amount
             else:
-                holding = Holding.query.filter_by(user_id=current_user.id, stock_id=stock.id).first()
                 if holding:
-                    holding.shares = holding.shares - shares
+                    holding.shares -= shares
                     if holding.shares == 0:
-                        db.session.delete(holding)
-                cash_account.balance = cash_account.balance + total_amount
+                        db.session.delete(holding) 
+                cash_account.balance += total_amount
 
         db.session.commit()
 
         if market_open:
             flash(f"{action.capitalize()} completed successfully.", "success")
         else:
-            flash(f"Market is closed. Your {action} transaction was saved as pending.", "warning")
+            flash(f"Market is closed. Your {action} order is pending.", "warning")
         return redirect(url_for("transactions"))
 
     return render_template(
@@ -444,35 +518,42 @@ def stock_transaction(stock_id):
         market_open=market_open,
         market_now=market_now,
         settings=get_market_settings(),
+        locked_price=stock.price,  # Pass the current price as locked price
     )
 
 @app.route("/portfolio")
 @login_required
 def portfolio():
+    # Execute pending orders if market is open
+    if is_market_open(arizona_now()):
+        pending = Transaction.query.filter_by(user_id=current_user.id, status="pending").all()
+        for txn in pending:
+            execute_pending_order(txn)
+        db.session.commit()
+    
     cash_account = get_or_create_cash_account(current_user.id)
-cash_balance = cash_account.balance
+    cash_balance = cash_account.balance
+    holdings = Holding.query.filter_by(user_id=current_user.id).all()
 
-holdings = Holding.query.filter_by(user_id=current_user.id).all()
+    holdings_data = []
+    portfolio_value = Decimal("0.00")
 
-holdings_data = []
-portfolio_value = Decimal("0.00")
+    for h in holdings:
+        stock = Stock.query.get(h.stock_id)
+        if not stock:
+            continue
 
-for h in holdings:
-    stock = Stock.query.get(h.stock_id)
-    if not stock:
-        continue
+        current_value = Decimal(stock.price) * h.shares
+        portfolio_value += current_value
 
-    current_value = Decimal(stock.price) * h.shares
-    portfolio_value += current_value
-
-    holdings_data.append({
-        "ticker": stock.ticker,
-        "company_name": stock.company_name,
-        "shares": h.shares,
-        "avg_cost": Decimal(h.avg_cost),
-        "price": Decimal(stock.price),
-        "value": current_value,
-    })
+        holdings_data.append({
+            "ticker": stock.ticker,
+            "company_name": stock.company_name,
+            "shares": h.shares,
+            "avg_cost": Decimal(h.avg_cost),
+            "price": Decimal(stock.price),
+            "value": current_value,
+        })
 
     account_total = cash_balance + portfolio_value
 
@@ -480,7 +561,7 @@ for h in holdings:
         "portfolio.html",
         cash_balance=cash_balance,
         holdings=holdings_data,
-        total_value=total_value,
+        portfolio_value=portfolio_value,
         account_total=account_total
     )
 
@@ -489,13 +570,31 @@ for h in holdings:
 @login_required
 def transactions():
     if is_market_open(arizona_now()):
-        pending_transactions = Transaction.query.filter_by(user_id=current_user.id, status="pending").all()
-        for txn in pending_transactions:
+        pending = Transaction.query.filter_by(user_id=current_user.id, status="pending").all()
+        for txn in pending:
             execute_pending_order(txn)
         db.session.commit()
 
     all_transactions = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.created_at.desc()).all()
     return render_template("transactions.html", transactions=all_transactions)
+
+@app.route("/transaction/<int:transaction_id>/cancel", methods=["POST"])
+@login_required
+def cancel_transaction(transaction_id):
+    txn = Transaction.query.get_or_404(transaction_id)
+
+    if txn.user_id != current_user.id:
+        abort(403)
+
+    if txn.status != "pending":
+        flash("Only pending orders can be cancelled.", "warning")
+        return redirect(url_for("transactions"))
+    
+    txn.status = "cancelled"
+    db.session.commit()
+
+    flash("Order cancelled successfully.", "success")
+    return redirect(url_for("transactions"))
 
 
 @app.route("/cash", methods=["GET", "POST"])
@@ -525,9 +624,9 @@ def cash():
             return redirect(url_for("cash"))
 
         if action == "deposit":
-            cash_account.balance = cash_account.balance + amount
+            cash_account.balance += amount
         else:
-            cash_account.balance = cash_account.balance - amount
+            cash_account.balance -= amount
 
         txn = Transaction(
             user_id=current_user.id,
@@ -548,42 +647,31 @@ def cash():
 
     return render_template("cash.html", cash_balance=cash_account.balance)
 
-# Admin pages
-def validate_time_string(value: str) -> str:
-    parsed = datetime.strptime(value, "%H:%M")
-    return parsed.strftime("%H:%M")
-
-
-def get_active_days_set(active_days: str):
-    if not active_days:
-        return set()
-    return {d.strip() for d in active_days.split(",")}
-
-
 @app.route("/admin/market-hours", methods=["GET", "POST"])
 @login_required
 @admin_required
 def market_hours():
     settings = get_market_settings()
-
+    
     if request.method == "POST":
-        open_time_val = (request.form.get("open_time") or "").strip()
-        close_time_val = (request.form.get("close_time") or "").strip()
-
+        open_time = (request.form.get("open_time") or "").strip()
+        close_time = (request.form.get("close_time") or "").strip()
+        
         try:
-            if open_time_val:
-                settings.open_time = validate_time_string(open_time_val)
-            if close_time_val:
-                settings.close_time = validate_time_string(close_time_val)
-
+            if open_time:
+                datetime.strptime(open_time, "%H:%M") 
+                settings.open_time = open_time
+            if close_time:
+                datetime.strptime(close_time, "%H:%M")  
+                settings.close_time = close_time
+            
             db.session.commit()
             flash("Market hours updated.", "success")
-
         except ValueError:
             flash("Invalid time format. Use HH:MM.", "warning")
-
+        
         return redirect(url_for("market_hours"))
-
+    
     return render_template("admin_market_hours.html", settings=settings)
 
 
@@ -595,11 +683,10 @@ def market_schedule():
 
     if request.method == "POST":
         selected_days = request.form.getlist("active_days")
-
         valid_days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        cleaned_days = [d for d in selected_days if d in valid_days]
+        cleaned = [d for d in selected_days if d in valid_days]
 
-        settings.active_days = ",".join(cleaned_days)
+        settings.active_days = ",".join(cleaned)
         db.session.commit()
 
         flash("Market schedule updated.", "success")
@@ -624,8 +711,7 @@ def market_schedule():
 @admin_required
 def add_holiday():
     settings = get_market_settings()
-
-    day_str = (request.form.get("day") or "").strip()
+    day_str = (request.form.get("day") or "").strip() 
     name = (request.form.get("name") or "").strip()
 
     try:
@@ -653,6 +739,17 @@ def add_holiday():
     db.session.commit()
 
     flash("Holiday added.", "success")
+    return redirect(url_for("market_schedule"))
+
+@app.route("/admin/holidays/<int:holiday_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def delete_holiday(holiday_id):
+    holiday = MarketHoliday.query.get_or_404(holiday_id)
+    db.session.delete(holiday)
+    db.session.commit()
+
+    flash("Holiday removed.", "success")
     return redirect(url_for("market_schedule"))
 
 @app.route("/admin/stocks", methods=["GET", "POST"])
@@ -696,7 +793,6 @@ def admin_stocks():
             high_price=price,
             low_price=price,
         )
-
         db.session.add(stock)
         db.session.commit()
 
@@ -706,19 +802,5 @@ def admin_stocks():
     all_stocks = Stock.query.order_by(Stock.company_name.asc()).all()
     return render_template("admin_stocks.html", stocks=all_stocks)
 
-
-@app.route("/admin/holidays/<int:holiday_id>/delete", methods=["POST"])
-@login_required
-@admin_required
-def delete_holiday(holiday_id: int):
-    holiday = MarketHoliday.query.get_or_404(holiday_id)
-
-    db.session.delete(holiday)
-    db.session.commit()
-
-    flash("Holiday removed.", "success")
-    return redirect(url_for("market_schedule"))
-
 if __name__ == "__main__":
     app.run(debug=True)
-
