@@ -320,6 +320,7 @@
 {% endif %}
  
 <style>
+/* Pulse Animation for Market Open */
 .pulse-dot {
   display: inline-block;
   width: 8px;
@@ -342,6 +343,77 @@
 .hover-lift:hover {
   transform: translateY(-4px);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+ 
+.btn-hover-fill {
+  transition: all 0.3s ease;
+}
+ 
+.btn-hover-fill:hover {
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+  color: white !important;
+}
+ 
+/* Card styling */
+.card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+ 
+/* Table Card */
+.table-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  overflow: hidden;
+}
+ 
+/* Data Table */
+.data-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+ 
+.data-table thead {
+  background: rgba(255, 255, 255, 0.05);
+}
+ 
+.data-table th {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+ 
+.data-table td {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: #D1D5DB;
+}
+ 
+.type-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #D1D5DB;
+}
+ 
+/* Button Styling */
+.btn-outline-primary {
+  border-color: #3B82F6;
+  color: #3B82F6;
+}
+ 
+.btn-outline-primary:hover {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: white;
 }
 </style>
 {% endblock %}
