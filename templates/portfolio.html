@@ -3,50 +3,50 @@
 {% block title %}Portfolio{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm border">
-  <div class="card-body p-4">
+<div class="row g-4 mb-4">
+  <div class="col-12">
     <h1 class="h3 mb-1">Portfolio</h1>
-    <p class="text-body-secondary mb-4">Cash account and current holdings.</p>
+    <p class="text-body-secondary mb-0">Cash account and current holdings</p>
+  </div>
+</div>
 
-    <div class="row g-3 mb-4">
-      <div class="col-md-4">
-        <div class="card h-100 border">
-          <div class="card-body">
-            <h2 class="h5">Cash Balance</h2>
-            <p class="mb-0">${{ '%.2f'|format(cash_balance) }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="card h-100 border">
-          <div class="card-body">
-            <h2 class="h5">Portfolio Value</h2>
-            <p class="mb-0">${{ '%.2f'|format(portfolio_value) }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="card h-100 border">
-          <div class="card-body">
-            <h2 class="h5">Account Total</h2>
-            <p class="mb-0">${{ '%.2f'|format(account_total) }}</p>
-          </div>
-        </div>
-      </div>
+<!-- Account Summary Cards -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="info-card">
+      <div class="info-label">Cash Balance</div>
+      <div class="info-value">${{ '%.2f'|format(cash_balance) }}</div>
     </div>
+  </div>
 
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover align-middle mb-0">
+  <div class="col-md-4">
+    <div class="info-card">
+      <div class="info-label">Portfolio Value</div>
+      <div class="info-value">${{ '%.2f'|format(portfolio_value) }}</div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="info-card">
+      <div class="info-label">Account Total</div>
+      <div class="info-value text-success">${{ '%.2f'|format(account_total) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Holdings Table -->
+<div class="row g-4">
+  <div class="col-12">
+    <div class="table-card">
+      <table class="data-table">
         <thead>
           <tr>
-            <th>Company</th>
-            <th>Ticker</th>
-            <th>Shares</th>
-            <th>Avg Cost</th>
-            <th>Current Price</th>
-            <th>Value</th>
+            <th>COMPANY</th>
+            <th>TICKER</th>
+            <th>SHARES</th>
+            <th>AVG COST</th>
+            <th>CURRENT PRICE</th>
+            <th>VALUE</th>
           </tr>
         </thead>
         <tbody>
@@ -54,16 +54,16 @@
             {% for h in holdings %}
             <tr>
               <td>{{ h.company_name }}</td>
-              <td>{{ h.ticker }}</td>
+              <td><span class="ticker-badge">{{ h.ticker }}</span></td>
               <td>{{ h.shares }}</td>
-              <td>${{ '%.2f'|format(h.avg_cost) }}</td>
+              <td class="text-muted">${{ '%.2f'|format(h.avg_cost) }}</td>
               <td>${{ '%.2f'|format(h.price) }}</td>
               <td>${{ '%.2f'|format(h.value) }}</td>
             </tr>
             {% endfor %}
           {% else %}
             <tr>
-              <td colspan="6" class="text-center">No holdings yet.</td>
+              <td colspan="6" class="text-center text-muted">No holdings yet.</td>
             </tr>
           {% endif %}
         </tbody>
@@ -71,4 +71,71 @@
     </div>
   </div>
 </div>
+
+<style>
+/* Info Cards */
+.info-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.info-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #F9FAFB;
+}
+
+/* Table Card */
+.table-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Data Table */
+.data-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.data-table thead {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.data-table th {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.data-table td {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: #D1D5DB;
+}
+
+.ticker-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #D1D5DB;
+}
+</style>
 {% endblock %}
