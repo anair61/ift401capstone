@@ -3,50 +3,58 @@
 {% block title %}Transactions{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm border">
-  <div class="card-body p-4">
+<div class="row g-4 mb-4">
+  <div class="col-12">
     <h1 class="h3 mb-1">Transactions</h1>
-    <p class="text-body-secondary mb-4">All buys, sells, deposits, and withdrawals in one table.</p>
+    <p class="text-body-secondary mb-0">All buys, sells, deposits, and withdrawals</p>
+  </div>
+</div>
 
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover align-middle mb-0">
+<!-- Transactions Table -->
+<div class="row g-4">
+  <div class="col-12">
+    <div class="table-card">
+      <table class="data-table">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Stock</th>
-            <th>Shares</th>
-            <th>Price</th>
-            <th>Amount</th>
-            <th>Notes</th>
+            <th>DATE</th>
+            <th>TYPE</th>
+            <th>STATUS</th>
+            <th>STOCK</th>
+            <th>SHARES</th>
+            <th>PRICE</th>
+            <th>AMOUNT</th>
           </tr>
         </thead>
         <tbody>
           {% if transactions %}
             {% for txn in transactions %}
             <tr>
-              <td>{{ txn.created_at.strftime('%Y-%m-%d %H:%M') if txn.created_at else '-' }}</td>
-              <td>{{ txn.txn_type|capitalize }}</td>
+              <td class="small">{{ txn.created_at.strftime('%Y-%m-%d %H:%M') if txn.created_at else '-' }}</td>
+              <td><span class="type-badge">{{ txn.txn_type|capitalize }}</span></td>
               <td>
                 {% if txn.status == 'completed' %}
                   <span class="badge text-bg-success">Completed</span>
                 {% elif txn.status == 'pending' %}
                   <span class="badge text-bg-warning">Pending</span>
-                {% else %}
-                  <span class="badge text-bg-secondary">{{ txn.status|capitalize }}</span>
+                  {% if txn.txn_type in ['buy', 'sell'] %}
+                    <form method="post" action="{{ url_for('cancel_transaction', transaction_id=txn.id) }}" style="display:inline;" class="ms-2">
+                      <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Cancel this order?')">Cancel</button>
+                    </form>
+                  {% endif %}
+                {% elif txn.status == 'cancelled' %}
+                  <span class="badge text-bg-secondary">Cancelled</span>
                 {% endif %}
               </td>
               <td>{{ txn.stock.ticker if txn.stock else '-' }}</td>
               <td>{{ txn.shares if txn.shares is not none else '-' }}</td>
-              <td>{{ '$%.2f'|format(txn.price) if txn.price is not none else '-' }}</td>
+              <td class="text-muted">{{ '$%.2f'|format(txn.price) if txn.price is not none else '-' }}</td>
               <td>${{ '%.2f'|format(txn.amount) }}</td>
-              <td>{{ txn.notes or '-' }}</td>
             </tr>
             {% endfor %}
           {% else %}
             <tr>
-              <td colspan="8" class="text-center text-muted">No transactions found.</td>
+              <td colspan="7" class="text-center text-muted">No transactions found.</td>
             </tr>
           {% endif %}
         </tbody>
@@ -54,4 +62,61 @@
     </div>
   </div>
 </div>
+
+<style>
+/* Table Card */
+.table-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Data Table */
+.data-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.data-table thead {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.data-table th {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.data-table td {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: #D1D5DB;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #D1D5DB;
+}
+
+/* Buttons */
+.btn-outline-danger {
+  border-color: #DC2626;
+  color: #DC2626;
+}
+
+.btn-outline-danger:hover {
+  background: #DC2626;
+  border-color: #DC2626;
+  color: white;
+}
+</style>
 {% endblock %}
