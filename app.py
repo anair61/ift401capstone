@@ -803,4 +803,4 @@ def admin_stocks():
     return render_template("admin_stocks.html", stocks=all_stocks)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
